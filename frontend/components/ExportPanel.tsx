@@ -7,13 +7,11 @@ import {
     FileCode,
     Settings,
     ChevronDown,
-    Printer,
 } from 'lucide-react';
 
 interface ExportPanelProps {
     onExportHTML: () => void;
     onExportPDF: () => void;
-    onPrint: () => void;
     onOpenPDFOptions: () => void;
     isConverting: boolean;
 }
@@ -21,7 +19,6 @@ interface ExportPanelProps {
 export default function ExportPanel({
     onExportHTML,
     onExportPDF,
-    onPrint,
     onOpenPDFOptions,
     isConverting,
 }: ExportPanelProps) {
@@ -83,17 +80,6 @@ export default function ExportPanel({
                             >
                                 <FileText className="h-4 w-4" />
                                 Export as PDF
-                            </button>
-                            <div className="border-t border-slate-100 my-1" />
-                            <button
-                                onClick={() => {
-                                    onPrint();
-                                    setShowDropdown(false);
-                                }}
-                                className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-50 text-slate-700"
-                            >
-                                <Printer className="h-4 w-4" />
-                                Print Preview
                             </button>
                         </div>
                     </>

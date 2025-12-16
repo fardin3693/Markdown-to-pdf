@@ -8,62 +8,37 @@ import rehypeStringify from 'rehype-stringify';
 import rehypeDocument from 'rehype-document';
 import rehypeFormat from 'rehype-format';
 import rehypeRaw from 'rehype-raw';
+import rehypeSlug from 'rehype-slug';
 
-export const convertToHtml = async (markdown: string, options: any = {}, isPdf: boolean = false): Promise<string> => {
-    // Determine margins for CSS
-    let margins = { top: '25mm', right: '25mm', bottom: '25mm', left: '25mm' };
+import remarkHeadingId from 'remark-heading-id';
 
-    if (typeof options.margins === 'object') {
-        margins = options.margins;
-    } else if (options.margins === 'narrow') {
-        margins = { top: '12.7mm', right: '12.7mm', bottom: '12.7mm', left: '12.7mm' };
-    } else if (options.margins === 'wide') {
-        margins = { top: '50.8mm', right: '50.8mm', bottom: '50.8mm', left: '50.8mm' };
-    } else if (options.margins === 'none') {
-        margins = { top: '0', right: '0', bottom: '0', left: '0' };
-    }
-
-    // Print-specific CSS to hide headers/footers and apply margins via padding
-    const printCss = isPdf ? '' : `
+export const convertToHtml = async (markdown: string, options: any = {}): Promise<string> => {
+    // Standard PDF generation CSS (Puppeteer handles margins, so we zero out padding to avoid double spacing)
+    // This ensures that when Puppeteer prints, there are no extra margins from the body.
+    const printCss = `
         @media print {
-            @page {
-                size: auto;
-                margin: 0mm;
+            .markdown-body {
+                padding: 0;
+                margin: 0;
+                max-width: none;
             }
             body {
-                padding: ${margins.top} ${margins.right} ${margins.bottom} ${margins.left} !important;
-                margin: 0 !important;
-            }
-            .markdown-body {
-                padding: 0 !important;
-                margin: 0 !important;
+                padding: 0;
+                margin: 0;
+                max-width: none;
             }
         }
     `;
 
-    // Standard PDF generation CSS (Puppeteer handles margins, so we zero out padding to avoid double spacing)
-    const pdfCss = isPdf ? `
-        @media print {
-            .markdown-body {
-                padding: 0;
-                margin: 0;
-                max-width: none;
-            }
-            body {
-                padding: 0;
-                margin: 0;
-                max-width: none;
-            }
-        }
-    ` : '';
-
     const file = await unified()
         .use(remarkParse)
+        .use(remarkHeadingId)
         .use(remarkGfm)
         .use(remarkMath)
         .use(remarkRehype, { allowDangerousHtml: true })
         .use(rehypeRaw)
         .use(rehypeKatex)
+        .use(rehypeSlug)
         .use(rehypeDocument, {
             title: 'Markdown to PDF',
             css: [
@@ -101,7 +76,7 @@ export const convertToHtml = async (markdown: string, options: any = {}, isPdf: 
                     display: table !important;
                 }
                 
-                ${isPdf ? pdfCss : printCss}
+                ${printCss}
             `,
         })
         .use(rehypeFormat)

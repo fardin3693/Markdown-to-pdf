@@ -250,41 +250,50 @@ export default function Home() {
         }
     }, [markdown, pdfOptions]);
 
-    const handlePrint = useCallback(async () => {
-        setIsConverting(true);
-        try {
-            const response = await fetch('/api/convert', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ markdown, format: 'html', options: pdfOptions }),
-            });
 
-            if (!response.ok) throw new Error('Conversion failed');
 
-            const htmlContent = await response.text();
+    const [isDraggingFile, setIsDraggingFile] = useState<boolean>(false);
 
-            const printWindow = window.open('', '_blank');
-            if (printWindow) {
-                printWindow.document.write(htmlContent);
-                printWindow.document.write('<script>window.onload = () => { window.print(); }</script>');
-                printWindow.document.close();
-            }
-        } catch (error) {
-            console.error('Error generating print preview:', error);
-            alert('Backend connection failed! Print preview requires the backend server.');
-        } finally {
-            setIsConverting(false);
+    const processFile = (file: File) => {
+        if (!file.name.match(/\.(md|markdown|txt)$/i)) {
+            alert('Please upload a Markdown (.md, .markdown) or Text (.txt) file.');
+            return;
         }
-    }, [markdown, pdfOptions]);
+        const reader = new FileReader();
+        reader.onload = (e) => handleMarkdownChange(e.target?.result as string);
+        reader.readAsText(file);
+    };
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => handleMarkdownChange(e.target?.result as string);
-            reader.readAsText(file);
+            processFile(file);
         }
     };
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingFile(true);
+    }, []);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+        setIsDraggingFile(false);
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingFile(false);
+
+        const file = e.dataTransfer.files?.[0];
+        if (file) {
+            processFile(file);
+        }
+    }, [handleMarkdownChange]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -334,7 +343,23 @@ export default function Home() {
     }, [editorWidth]);
 
     return (
-        <div className={`flex flex-col bg-slate-50 ${isMobile ? 'min-h-screen' : 'h-screen overflow-hidden'}`}>
+        <div
+            className={`flex flex-col bg-slate-50 ${isMobile ? 'min-h-screen' : 'h-screen overflow-hidden'} relative`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+        >
+            {/* Drag Overlay */}
+            {isDraggingFile && (
+                <div className="absolute inset-0 z-50 bg-blue-500/20 backdrop-blur-sm flex items-center justify-center border-4 border-blue-500 border-dashed m-4 rounded-xl pointer-events-none">
+                    <div className="bg-white p-6 rounded-xl shadow-xl flex flex-col items-center animate-bounce">
+                        <Upload className="h-12 w-12 text-blue-500 mb-2" />
+                        <h3 className="text-xl font-bold text-slate-800">Drop your file here</h3>
+                        <p className="text-slate-500">Supports .md, .markdown, .txt</p>
+                    </div>
+                </div>
+            )}
+
             {/* Navigation Bar */}
             <nav className="flex-none border-b border-slate-200 bg-white">
                 <div className="max-w-screen-2xl mx-auto px-4 min-h-[3.5rem] py-2 flex flex-wrap gap-y-2 items-center justify-between">
@@ -398,7 +423,6 @@ export default function Home() {
                         <ExportPanel
                             onExportHTML={handleExportHTML}
                             onExportPDF={handleExportPDF}
-                            onPrint={handlePrint}
                             onOpenPDFOptions={() => setShowPDFOptions(true)}
                             isConverting={isConverting}
                         />
