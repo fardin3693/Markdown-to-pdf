@@ -9,7 +9,54 @@ import rehypeDocument from 'rehype-document';
 import rehypeFormat from 'rehype-format';
 import rehypeRaw from 'rehype-raw';
 
-export const convertToHtml = async (markdown: string, options: any = {}): Promise<string> => {
+export const convertToHtml = async (markdown: string, options: any = {}, isPdf: boolean = false): Promise<string> => {
+    // Determine margins for CSS
+    let margins = { top: '25mm', right: '25mm', bottom: '25mm', left: '25mm' };
+
+    if (typeof options.margins === 'object') {
+        margins = options.margins;
+    } else if (options.margins === 'narrow') {
+        margins = { top: '12.7mm', right: '12.7mm', bottom: '12.7mm', left: '12.7mm' };
+    } else if (options.margins === 'wide') {
+        margins = { top: '50.8mm', right: '50.8mm', bottom: '50.8mm', left: '50.8mm' };
+    } else if (options.margins === 'none') {
+        margins = { top: '0', right: '0', bottom: '0', left: '0' };
+    }
+
+    // Print-specific CSS to hide headers/footers and apply margins via padding
+    const printCss = isPdf ? '' : `
+        @media print {
+            @page {
+                size: auto;
+                margin: 0mm;
+            }
+            body {
+                padding: ${margins.top} ${margins.right} ${margins.bottom} ${margins.left} !important;
+                margin: 0 !important;
+            }
+            .markdown-body {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+        }
+    `;
+
+    // Standard PDF generation CSS (Puppeteer handles margins, so we zero out padding to avoid double spacing)
+    const pdfCss = isPdf ? `
+        @media print {
+            .markdown-body {
+                padding: 0;
+                margin: 0;
+                max-width: none;
+            }
+            body {
+                padding: 0;
+                margin: 0;
+                max-width: none;
+            }
+        }
+    ` : '';
+
     const file = await unified()
         .use(remarkParse)
         .use(remarkGfm)
@@ -31,7 +78,8 @@ export const convertToHtml = async (markdown: string, options: any = {}): Promis
                     margin: 0 auto;
                     padding: 45px;
                     font-family: ${options.fontFamily || 'system-ui, -apple-system, sans-serif'} !important;
-                    font-size: ${options.fontSize || '16px'} !important;
+                    font-size: ${options.fontSize || '12pt'} !important;
+                    background-color: white;
                 }
                 @media (max-width: 767px) {
                     body {
@@ -45,37 +93,20 @@ export const convertToHtml = async (markdown: string, options: any = {}): Promis
                     margin: 0 auto;
                     padding: 45px;
                     font-family: ${options.fontFamily || 'system-ui, -apple-system, sans-serif'} !important;
-                    font-size: ${options.fontSize || '16px'} !important;
+                    font-size: ${options.fontSize || '12pt'} !important;
                 }
                 /* Ensure tables take full width */
                 table {
                     width: 100% !important;
                     display: table !important;
                 }
-                /* Optimize for print */
-                @media print {
-                    .markdown-body {
-                        padding: 0;
-                        margin: 0;
-                        max-width: none;
-                    }
-                    body {
-                        padding: 0;
-                        margin: 0;
-                        max-width: none;
-                    }
-                }
+                
+                ${isPdf ? pdfCss : printCss}
             `,
         })
         .use(rehypeFormat)
         .use(rehypeStringify)
         .process(markdown);
-
-    // Apply markdown-body class to body via string replacement since rehype-document puts it on html or body depends on config, 
-    // but usually cleaner to just inject the class into the body tag if rehype-document doesn't support class on body easily without extra plugins.
-    // Actually rehype-document doesn't easily let us add class to body. 
-    // So we will wrap the content in a body with class if proper, but rehype-document creates the full structure.
-    // A simpler approach for the specific class is to replace <body> with <body class="markdown-body">
 
     return String(file).replace('<body>', '<body class="markdown-body">');
 };

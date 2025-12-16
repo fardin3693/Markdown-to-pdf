@@ -33,9 +33,16 @@ export default function ExportPanel({
             <Button
                 onClick={onExportPDF}
                 disabled={isConverting}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 h-9 text-xs uppercase tracking-wide"
+                className="bg-red-600 hover:bg-red-700 text-white font-bold px-3 md:px-6 h-9 text-xs uppercase tracking-wide"
             >
-                {isConverting ? 'Converting...' : 'Convert to PDF'}
+                {isConverting ? (
+                    <span className="animate-pulse">...</span>
+                ) : (
+                    <>
+                        <span className="hidden md:inline">Convert to PDF</span>
+                        <span className="md:hidden">PDF</span>
+                    </>
+                )}
             </Button>
 
             {/* Export Dropdown */}
@@ -44,10 +51,10 @@ export default function ExportPanel({
                     variant="outline"
                     size="sm"
                     onClick={() => setShowDropdown(!showDropdown)}
-                    className="h-9 px-3 border-slate-300 text-slate-600"
+                    className="h-9 px-2 md:px-3 border-slate-300 text-slate-600"
                 >
-                    Export
-                    <ChevronDown className="ml-1 h-3 w-3" />
+                    <span className="hidden md:inline">Export</span>
+                    <ChevronDown className="h-3 w-3 md:ml-1" />
                 </Button>
 
                 {showDropdown && (

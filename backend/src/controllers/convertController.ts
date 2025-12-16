@@ -10,7 +10,8 @@ export const convertMarkdownToPdf = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Markdown content is required' });
         }
 
-        const html = await convertToHtml(markdown, options);
+        const isPdf = format !== 'html';
+        const html = await convertToHtml(markdown, options, isPdf);
 
         if (format === 'html') {
             res.set({

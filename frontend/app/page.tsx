@@ -43,6 +43,14 @@ export default function Home() {
     // Core state
     const [markdown, setMarkdown] = useState<string>(SAMPLE_MARKDOWN);
     const [isConverting, setIsConverting] = useState<boolean>(false);
+    const [isMobile, setIsMobile] = useState<boolean>(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Panel visibility state - separate for each panel
     const [showEditor, setShowEditor] = useState<boolean>(true);
@@ -62,6 +70,7 @@ export default function Home() {
     const [matchCount, setMatchCount] = useState<number>(0);
     const [currentMatch, setCurrentMatch] = useState<number>(0);
     const [matchPositions, setMatchPositions] = useState<number[]>([]);
+    const [shouldFocusMatch, setShouldFocusMatch] = useState<boolean>(false);
 
     // PDF Options state
     const [showPDFOptions, setShowPDFOptions] = useState<boolean>(false);
@@ -101,6 +110,7 @@ export default function Home() {
             setMatchPositions(positions);
             setMatchCount(positions.length);
             setCurrentMatch(positions.length > 0 ? 1 : 0);
+            setShouldFocusMatch(false); // Don't steal focus while typing
         } else {
             setMatchPositions([]);
             setMatchCount(0);
@@ -148,47 +158,24 @@ export default function Home() {
     );
 
     // Find handlers with actual navigation
-    const handleFindNext = useCallback(() => {
-        if (matchPositions.length === 0) return;
-
-        const nextIndex = currentMatch < matchCount ? currentMatch : 0;
-        setCurrentMatch(nextIndex + 1);
-
-        // Scroll editor to match position
-        if (editorRef.current) {
-            const textarea = editorRef.current.getTextarea();
-            if (textarea) {
-                const pos = matchPositions[nextIndex];
-                textarea.focus();
-                textarea.setSelectionRange(pos, pos + searchTerm.length);
-
-                // Scroll to selection
-                const lineHeight = 24;
-                const linesBeforeMatch = markdown.substring(0, pos).split('\n').length - 1;
-                textarea.scrollTop = linesBeforeMatch * lineHeight - 100;
-            }
+    // Find handlers with actual navigation
+    const handleFindNext = () => {
+        if (matchCount > 0) {
+            setShouldFocusMatch(true);
+            setCurrentMatch((prev) => (prev < matchCount ? prev + 1 : 1));
         }
-    }, [currentMatch, matchCount, matchPositions, markdown, searchTerm]);
+    };
 
-    const handleFindPrev = useCallback(() => {
-        if (matchPositions.length === 0) return;
-
-        const prevIndex = currentMatch > 1 ? currentMatch - 2 : matchCount - 1;
-        setCurrentMatch(prevIndex + 1);
-
-        if (editorRef.current) {
-            const textarea = editorRef.current.getTextarea();
-            if (textarea) {
-                const pos = matchPositions[prevIndex];
-                textarea.focus();
-                textarea.setSelectionRange(pos, pos + searchTerm.length);
-
-                const lineHeight = 24;
-                const linesBeforeMatch = markdown.substring(0, pos).split('\n').length - 1;
-                textarea.scrollTop = linesBeforeMatch * lineHeight - 100;
-            }
+    const handleFindPrev = () => {
+        if (matchCount > 0) {
+            setShouldFocusMatch(true);
+            setCurrentMatch((prev) => (prev > 1 ? prev - 1 : matchCount));
         }
-    }, [currentMatch, matchCount, matchPositions, markdown, searchTerm]);
+    };
+
+
+
+
 
     const handleReplace = useCallback(() => {
         if (searchTerm && matchPositions.length > 0 && currentMatch > 0) {
@@ -212,7 +199,7 @@ export default function Home() {
     const handleExportHTML = useCallback(async () => {
         setIsConverting(true);
         try {
-            const response = await fetch('http://localhost:3001/api/convert', {
+            const response = await fetch('/api/convert', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ markdown, format: 'html' }),
@@ -238,7 +225,7 @@ export default function Home() {
     const handleExportPDF = useCallback(async () => {
         setIsConverting(true);
         try {
-            const response = await fetch('http://localhost:3001/api/convert', {
+            const response = await fetch('/api/convert', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ markdown, options: pdfOptions }),
@@ -263,30 +250,30 @@ export default function Home() {
         }
     }, [markdown, pdfOptions]);
 
-    const handlePrint = useCallback(() => {
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Print Preview</title>
-          <style>
-            body { font-family: ${pdfOptions.fontFamily}, sans-serif; font-size: ${pdfOptions.fontSize}; max-width: 800px; margin: 0 auto; padding: 40px; }
-            pre { background: #f5f5f5; padding: 16px; border-radius: 4px; overflow-x: auto; }
-            code { font-family: monospace; }
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            @media print { body { padding: 0; } }
-          </style>
-        </head>
-        <body>
-          <div id="content">${markdown}</div>
-          <script>window.print();</script>
-        </body>
-        </html>
-      `);
-            printWindow.document.close();
+    const handlePrint = useCallback(async () => {
+        setIsConverting(true);
+        try {
+            const response = await fetch('/api/convert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ markdown, format: 'html', options: pdfOptions }),
+            });
+
+            if (!response.ok) throw new Error('Conversion failed');
+
+            const htmlContent = await response.text();
+
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.write(htmlContent);
+                printWindow.document.write('<script>window.onload = () => { window.print(); }</script>');
+                printWindow.document.close();
+            }
+        } catch (error) {
+            console.error('Error generating print preview:', error);
+            alert('Backend connection failed! Print preview requires the backend server.');
+        } finally {
+            setIsConverting(false);
         }
     }, [markdown, pdfOptions]);
 
@@ -347,11 +334,11 @@ export default function Home() {
     }, [editorWidth]);
 
     return (
-        <div className="h-screen flex flex-col overflow-hidden bg-slate-50">
+        <div className={`flex flex-col bg-slate-50 ${isMobile ? 'min-h-screen' : 'h-screen overflow-hidden'}`}>
             {/* Navigation Bar */}
             <nav className="flex-none border-b border-slate-200 bg-white">
-                <div className="max-w-screen-2xl mx-auto px-4 h-14 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                <div className="max-w-screen-2xl mx-auto px-4 min-h-[3.5rem] py-2 flex flex-wrap gap-y-2 items-center justify-between">
+                    <div className="flex items-center gap-2 mr-4">
                         <span className="text-2xl">📄</span>
                         <span className="font-bold text-lg text-slate-800 tracking-tight">
                             MarkDownToPDF
@@ -366,8 +353,8 @@ export default function Home() {
                             onClick={() => fileInputRef.current?.click()}
                             className="h-9 border-slate-300"
                         >
-                            <Upload className="h-4 w-4 mr-1.5" />
-                            Upload
+                            <Upload className="h-4 w-4 md:mr-1.5" />
+                            <span className="hidden md:inline">Upload</span>
                         </Button>
                         <input
                             ref={fileInputRef}
@@ -432,12 +419,16 @@ export default function Home() {
             </div>
 
             {/* Main Content - Fixed Height */}
-            <main className="flex-1 flex overflow-hidden">
+            <main className={`flex-1 flex ${isMobile ? 'flex-col' : 'flex-row overflow-hidden'}`}>
                 {/* Editor Panel */}
                 {showEditor && (
                     <div
-                        className="flex flex-col bg-white border-r border-slate-200 overflow-hidden"
-                        style={{ width: showPreview ? `${editorWidth}%` : '100%' }}
+                        className="flex flex-col bg-white border-b md:border-b-0 md:border-r border-slate-200 overflow-hidden"
+                        style={{
+                            width: isMobile ? '100%' : (showPreview ? editorWidth + '%' : '100%'),
+                            height: isMobile ? '60vh' : undefined,
+                            flex: isMobile ? 'none' : undefined
+                        }}
                     >
                         {/* Find Replace Bar */}
                         {showFindReplace && (
@@ -468,13 +459,14 @@ export default function Home() {
                                 searchTerm={searchTerm}
                                 matchPositions={matchPositions}
                                 currentMatch={currentMatch}
+                                shouldFocusMatch={shouldFocusMatch}
                             />
                         </div>
                     </div>
                 )}
 
-                {/* Resize Handle */}
-                {showEditor && showPreview && (
+                {/* Resize Handle (Desktop Only) */}
+                {showEditor && showPreview && !isMobile && (
                     <div
                         ref={resizeRef}
                         className="flex-none w-1 bg-slate-200 hover:bg-slate-400 cursor-col-resize flex items-center justify-center transition-colors"
@@ -488,9 +480,13 @@ export default function Home() {
                 {showPreview && (
                     <div
                         className="flex-1 overflow-hidden bg-white"
-                        style={{ width: showEditor ? `${100 - editorWidth}%` : '100%' }}
+                        style={{
+                            width: isMobile ? '100%' : (showEditor ? (100 - editorWidth) + '%' : '100%'),
+                            height: isMobile ? '60vh' : undefined,
+                            flex: isMobile ? 'none' : undefined
+                        }}
                     >
-                        <MarkdownPreview ref={previewRef} content={markdown} />
+                        <MarkdownPreview ref={previewRef} content={markdown} options={pdfOptions} />
                     </div>
                 )}
 

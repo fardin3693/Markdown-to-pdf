@@ -9,6 +9,7 @@ interface MarkdownEditorProps {
     searchTerm?: string;
     matchPositions?: number[];
     currentMatch?: number;
+    shouldFocusMatch?: boolean;
 }
 
 export interface MarkdownEditorRef {
@@ -18,7 +19,7 @@ export interface MarkdownEditorRef {
 }
 
 const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(
-    ({ value, onChange, onScrollChange, searchTerm, matchPositions, currentMatch }, ref) => {
+    ({ value, onChange, onScrollChange, searchTerm, matchPositions, currentMatch, shouldFocusMatch }, ref) => {
         const textareaRef = useRef<HTMLTextAreaElement>(null);
 
         const handleScroll = useCallback(() => {
@@ -37,13 +38,22 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(
                 if (textarea) {
                     const pos = matchPositions[currentMatch - 1];
                     if (pos !== undefined) {
-                        // Set selection to highlight the match
-                        textarea.focus();
-                        textarea.setSelectionRange(pos, pos + searchTerm.length);
+                        // Only focus if explicitly requested (not on type)
+                        if (shouldFocusMatch) {
+                            textarea.focus();
+                            textarea.setSelectionRange(pos, pos + searchTerm.length);
+                        } else {
+                            // Can optionally scroll to view without stealing focus? 
+                            // Standard behavior is usually just highlight. 
+                            // If we don't focus/select, it's just text.
+                            // We can use setSelectionRange WITHOUT focus to prepare the cursor?
+                            // No, setSelectionRange usually doesn't scroll unless focused.
+                            // We'll leave it alone on type.
+                        }
                     }
                 }
             }
-        }, [currentMatch, searchTerm, matchPositions]);
+        }, [currentMatch, searchTerm, matchPositions, shouldFocusMatch]);
 
         useImperativeHandle(ref, () => ({
             insertFormat: (before: string, after: string) => {
