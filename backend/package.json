@@ -1,0 +1,39 @@
+{
+    "name": "md-to-pdf-backend",
+    "version": "1.0.0",
+    "description": "Backend for Markdown to PDF converter",
+    "main": "src/index.ts",
+    "scripts": {
+        "start": "ts-node src/index.ts",
+        "dev": "nodemon src/index.ts",
+        "build": "tsc"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "body-parser": "^1.20.2",
+        "cors": "^2.8.5",
+        "express": "^4.19.2",
+        "puppeteer": "^22.6.0",
+        "unified": "^11.0.4",
+        "remark-parse": "^11.0.0",
+        "remark-math": "^6.0.0",
+        "remark-rehype": "^11.1.0",
+        "rehype-katex": "^7.0.0",
+        "rehype-stringify": "^10.0.0",
+        "rehype-document": "^7.0.3",
+        "rehype-format": "^5.0.0",
+        "rehype-raw": "^7.0.0",
+        "remark-gfm": "^4.0.0"
+    },
+    "devDependencies": {
+        "@types/body-parser": "^1.19.5",
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.17.21",
+        "@types/node": "^20.12.7",
+        "nodemon": "^3.1.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.4.5"
+    }
+}
