@@ -7,16 +7,18 @@ node_modules
 coverage
 
 # Next.js
-/.next/
-/out/
-/build
+.next/
+out/
+build/
 .vercel
 
 # Misc
 .DS_Store
-*.pem
+Thumbs.db
 
-# Debug
+# Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 ts-debug.log*
@@ -33,4 +35,15 @@ ts-debug.log*
 next-env.d.ts
 
 # Backend
-/backend/dist
+backend/dist
+backend/node_modules
+
+# Frontend
+frontend/.next
+frontend/out
+frontend/build
+frontend/node_modules
+
+# IDEs
+.vscode
+.idea

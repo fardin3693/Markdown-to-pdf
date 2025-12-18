@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { convertToHtml } from '../services/markdownService';
-import { generatePdf } from '../services/pdfService';
+import { convertToHtml } from './markdownService';
+import { generatePdf } from './pdfService';
 
 export const convertMarkdownToPdf = async (req: Request, res: Response) => {
     try {
@@ -32,6 +32,9 @@ export const convertMarkdownToPdf = async (req: Request, res: Response) => {
         res.send(pdfBuffer);
     } catch (error) {
         console.error('Error generating PDF:', error);
-        res.status(500).json({ error: 'Failed to generate PDF' });
+        res.status(500).json({
+            error: 'Failed to generate PDF',
+            details: error instanceof Error ? error.message : String(error)
+        });
     }
 };
