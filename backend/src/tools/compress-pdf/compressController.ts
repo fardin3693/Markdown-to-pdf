@@ -13,22 +13,80 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
 
         const file = req.files[0];
         console.log('Received file:', { name: file.originalname, size: file.size, mimetype: file.mimetype });
-        const compressionLevel = req.body.compressionLevel || 'ebook';
+        console.log('Request body:', req.body);
+        console.log('Raw compressionLevel from body:', req.body.compressionLevel);
+        const compressionLevel = req.body.compressionLevel || 'standard';
+        console.log('Using compressionLevel:', compressionLevel);
 
-        // Map frontend levels to compress-pdf settings (Ghostscript presets)
-        let gsSetting = 'ebook';
+        // Map frontend levels to compress-pdf settings with enhanced parameters
+        let gsArgs: string[] = [];
         switch (compressionLevel) {
             case 'max':
-                gsSetting = 'screen';
+                // Maximum compression - lowest quality (72 dpi, JPEG quality 50)
+                gsArgs = [
+                    '-dPDFSETTINGS=/screen',
+                    '-dColorImageResolution=72',
+                    '-dGrayImageResolution=72',
+                    '-dMonoImageResolution=72',
+                    '-dColorImageDownsampleType=/Bicubic',
+                    '-dGrayImageDownsampleType=/Bicubic',
+                    '-dJPEGQ=50',
+                    '-dCompressFonts=true',
+                    '-dDetectDuplicateImages=true',
+                    '-dCompressPages=true',
+                    '-dNOPAUSE',
+                    '-dBATCH',
+                    '-dQUIET'
+                ];
                 break;
             case 'standard':
-                gsSetting = 'ebook';
+                // Standard compression - balanced quality (150 dpi, JPEG quality 70)
+                gsArgs = [
+                    '-dPDFSETTINGS=/ebook',
+                    '-dColorImageResolution=150',
+                    '-dGrayImageResolution=150',
+                    '-dMonoImageResolution=150',
+                    '-dColorImageDownsampleType=/Bicubic',
+                    '-dGrayImageDownsampleType=/Bicubic',
+                    '-dJPEGQ=70',
+                    '-dCompressFonts=true',
+                    '-dDetectDuplicateImages=true',
+                    '-dCompressPages=true',
+                    '-dNOPAUSE',
+                    '-dBATCH',
+                    '-dQUIET'
+                ];
                 break;
             case 'low':
-                gsSetting = 'printer';
+                // Low compression - high quality (300 dpi, JPEG quality 85)
+                gsArgs = [
+                    '-dPDFSETTINGS=/printer',
+                    '-dColorImageResolution=300',
+                    '-dGrayImageResolution=300',
+                    '-dMonoImageResolution=300',
+                    '-dColorImageDownsampleType=/Bicubic',
+                    '-dGrayImageDownsampleType=/Bicubic',
+                    '-dJPEGQ=85',
+                    '-dCompressFonts=true',
+                    '-dDetectDuplicateImages=true',
+                    '-dCompressPages=true',
+                    '-dNOPAUSE',
+                    '-dBATCH',
+                    '-dQUIET'
+                ];
                 break;
             default:
-                gsSetting = 'ebook';
+                // Default to standard
+                gsArgs = [
+                    '-dPDFSETTINGS=/ebook',
+                    '-dJPEGQ=70',
+                    '-dCompressFonts=true',
+                    '-dDetectDuplicateImages=true',
+                    '-dCompressPages=true',
+                    '-dNOPAUSE',
+                    '-dBATCH',
+                    '-dQUIET'
+                ];
         }
 
         // Temporary directory for processing
@@ -42,14 +100,19 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
             await fs.ensureDir(outputDir);
 
             // Compress
-            console.log('Calling compress-pdf with:', { inputPath, outputDir, gsModule: 'gswin64c' });
-            // compress-pdf returns a Buffer in this configuration
+            console.log('Calling compress-pdf with:', {
+                inputPath,
+                outputDir,
+                gsModule: 'gswin64c',
+                compressionLevel,
+                argsCount: gsArgs.length
+            });
+
             const compressedBuffer = await compress(inputPath, {
                 output: outputDir,
                 gsModule: 'gswin64c',
-                args: ['-dPDFSETTINGS=/' + gsSetting]
+                args: gsArgs
             });
-            console.log('Compression successful.');
 
             if (!compressedBuffer) {
                 throw new Error('Compression failed, no output');
@@ -58,13 +121,36 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
             const compressedSize = compressedBuffer.length;
             const originalSize = file.size;
 
+            console.log('Compression result:', {
+                originalSize,
+                compressedSize,
+                reduction: originalSize - compressedSize,
+                reductionPercent: Math.round(((originalSize - compressedSize) / originalSize) * 100)
+            });
+
+            // If compressed file is larger or same size, return original
+            let finalBuffer: Buffer;
+            let finalSize: number;
+            let wasCompressed = true;
+
+            if (compressedSize >= originalSize) {
+                console.log('Compressed file is not smaller, returning original');
+                finalBuffer = file.buffer;
+                finalSize = originalSize;
+                wasCompressed = false;
+            } else {
+                finalBuffer = compressedBuffer;
+                finalSize = compressedSize;
+            }
+
             // Send response with metadata for frontend to show stats
             res.setHeader('Content-Type', 'application/pdf');
             res.setHeader('Content-Disposition', `attachment; filename="compressed_${file.originalname}"`);
             res.setHeader('X-Original-Size', originalSize.toString());
-            res.setHeader('X-Compressed-Size', compressedSize.toString());
+            res.setHeader('X-Compressed-Size', finalSize.toString());
+            res.setHeader('X-Was-Compressed', wasCompressed.toString());
 
-            res.send(compressedBuffer);
+            res.send(finalBuffer);
 
         } catch (err: any) {
             console.error('Inner compression error:', err);

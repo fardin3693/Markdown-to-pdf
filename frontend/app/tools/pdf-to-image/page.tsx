@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileText, ArrowRight, Download, RefreshCw, Image as ImageIcon } from "lucide-react";
+import ToolPageHeader from '@/components/layout/ToolPageHeader';
 
 export default function PdfToImagePage() {
     const [file, setFile] = useState<File | null>(null);
@@ -57,7 +58,9 @@ export default function PdfToImagePage() {
     };
 
     return (
-        <div className="py-8 md:py-12">
+        <>
+            <ToolPageHeader title="PDF to Image" />
+            <div className="py-8 md:py-12">
             <div className="container mx-auto px-4 max-w-5xl">
                 <div className="text-center mb-10">
                     <div className="inline-flex items-center justify-center p-3 bg-blue-100 text-blue-600 rounded-xl mb-6">
@@ -159,6 +162,7 @@ export default function PdfToImagePage() {
                     </div>
                 )}
             </div>
-        </div>
+            </div>
+        </>
     );
 }

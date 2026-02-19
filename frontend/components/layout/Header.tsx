@@ -39,6 +39,14 @@ export default function Header() {
             {/* Mobile Menu Overlay */}
             {isMobileMenuOpen && (
                 <div className="fixed inset-0 z-[90] bg-white h-screen pt-24 px-6 md:hidden animate-in slide-in-from-top-10 fade-in duration-200 flex flex-col">
+                    {/* Close Button */}
+                    <button
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="absolute top-4 right-6 p-2 text-slate-600 hover:text-slate-900 transition-colors"
+                        aria-label="Close menu"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
                     <nav className="flex flex-col space-y-6 text-lg font-medium text-slate-600">
                         <Link
                             href="/#features"

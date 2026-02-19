@@ -12,6 +12,7 @@ const SortablePdfItem = dynamic(() => import('@/components/merge-pdf/SortablePdf
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Download, UploadCloud } from 'lucide-react';
 import Link from 'next/link';
+import ToolPageHeader from '@/components/layout/ToolPageHeader';
 
 // Simple ID generator
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -154,12 +155,7 @@ export default function MergePdfPage() {
                 </div>
             )}
 
-            {/* Tool Title */}
-            <div className="bg-white border-b border-slate-200">
-                <div className="container mx-auto px-6 py-4">
-                    <h1 className="text-xl font-bold text-slate-800">Merge PDF</h1>
-                </div>
-            </div>
+            <ToolPageHeader title="Merge PDF" />
 
             <main className="flex-1 container mx-auto px-6 py-8 flex flex-col max-w-6xl">
                 {files.length === 0 ? (
@@ -201,13 +197,13 @@ export default function MergePdfPage() {
                             </DndContext>
                         </div>
 
-                        <div className="flex flex-col items-center gap-4 mt-8 pb-20">
+                        <div className="flex flex-col items-center gap-4 mt-8">
                             <DropZone onFilesDrop={handleFilesDrop} />
 
-                            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-lg flex justify-center z-40">
+                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex justify-center w-full">
                                 <Button
                                     size="lg"
-                                    className="w-full max-w-md text-lg font-bold shadow-xl shadow-blue-500/20"
+                                    className="w-full max-w-md text-lg font-bold shadow-lg shadow-blue-500/20 py-6"
                                     onClick={handleMerge}
                                     disabled={isMerging || files.length < 2}
                                 >

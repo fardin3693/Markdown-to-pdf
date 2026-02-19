@@ -10,6 +10,7 @@ import PDFOptionsModal from '@/components/markdown-to-pdf/PDFOptionsModal';
 import FindReplaceBar from '@/components/markdown-to-pdf/FindReplaceBar';
 import { Button } from '@/components/ui/button';
 import { PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Upload, GripVertical, ArrowLeft } from 'lucide-react';
+import ToolPageHeader from '@/components/layout/ToolPageHeader';
 
 const SAMPLE_MARKDOWN = `# Markdown to PDF
 

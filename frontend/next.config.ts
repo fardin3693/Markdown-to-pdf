@@ -3,7 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactCompiler: true,
   experimental: {
-    middlewareClientMaxBodySize: '500mb',
+    proxyClientMaxBodySize: '500mb',
+  },
+  turbopack: {
+    root: __dirname,
   },
   images: {
     remotePatterns: [
@@ -15,7 +18,6 @@ const nextConfig: NextConfig = {
         protocol: 'http',
         hostname: '**',
       },
-      // Allow local images
       {
         protocol: 'http',
         hostname: 'localhost',

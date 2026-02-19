@@ -1,7 +1,50 @@
 These are the notes for the project.
 
-## External install
-1. Ghostscript: [text](https://www.ghostscript.com/releases/gsdnld.html)
+## External Dependencies Installation (Linux Server)
+
+### 1. Ghostscript (Required for: Compress PDF)
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y ghostscript
+
+# Verify installation
+gs --version
+```
+
+### 2. LibreOffice (Required for: Doc to PDF, PPT to PDF, Excel to PDF)
+```bash
+# Ubuntu/Debian
+sudo apt-get install -y libreoffice
+
+# Verify installation
+libreoffice --version
+```
+
+### 3. Chromium Dependencies (Required for: Markdown to PDF)
+Puppeteer auto-downloads Chromium on `npm install`, but Linux servers need these system dependencies:
+```bash
+# Ubuntu/Debian
+sudo apt-get install -y \
+  ca-certificates fonts-liberation libasound2 libatk-bridge2.0-0 \
+  libatk1.0-0 libcups2 libdbus-1-3 libdrm2 libgbm1 libgtk-3-0 \
+  libnspr4 libnss3 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+  libxss1 libxtst6 xdg-utils fonts-ipafont-gothic fonts-wqy-zenhei \
+  fonts-thai-tlwg fonts-kacst fonts-freefont-ttf
+```
+
+### Quick Install All Dependencies (Ubuntu/Debian)
+```bash
+sudo apt-get update
+sudo apt-get install -y ghostscript libreoffice \
+  ca-certificates fonts-liberation libasound2 libatk-bridge2.0-0 \
+  libatk1.0-0 libcups2 libdbus-1-3 libdrm2 libgbm1 libgtk-3-0 \
+  libnspr4 libnss3 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+  libxss1 libxtst6 xdg-utils fonts-ipafont-gothic fonts-wqy-zenhei \
+  fonts-thai-tlwg fonts-kacst fonts-freefont-ttf
+```
+
+---
 
 ## Deployment Checklist
 
@@ -28,3 +71,5 @@ These are the notes for the project.
 ### 4. Dependencies
 - **Ghostscript**: Must be installed and available in the system `PATH` on the production server for the Compress PDF tool to work.
 - **Node Version**: Use Node 18+ for both frontend and backend.
+### 5. Server installation:
+ for doc, ppt, excel file converting need to install libraoffice on the server.

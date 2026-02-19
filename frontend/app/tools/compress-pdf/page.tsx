@@ -5,6 +5,7 @@ import { useDropzone } from "react-dropzone";
 import { Upload, FileText, ArrowRight, Download, RefreshCw, CheckCircle2, AlertCircle, Settings, Minimize2, Trash2, X, DownloadCloud } from "lucide-react";
 import { v4 as uuidv4 } from 'uuid';
 import JSZip from 'jszip';
+import ToolPageHeader from '@/components/layout/ToolPageHeader';
 
 type CompressionLevel = 'max' | 'standard' | 'low';
 
@@ -18,6 +19,7 @@ interface FileQueueItem {
         filename: string;
         originalSize: number;
         compressedSize: number;
+        wasCompressed: boolean;
     };
     error?: string;
 }
@@ -80,6 +82,7 @@ export default function CompressPdfPage() {
             // Get headers for size info
             const originalSizeFromHeader = response.headers.get('X-Original-Size');
             const compressedSizeFromHeader = response.headers.get('X-Compressed-Size');
+            const wasCompressedHeader = response.headers.get('X-Was-Compressed');
 
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
@@ -90,7 +93,8 @@ export default function CompressPdfPage() {
                     url,
                     filename: `compressed_${item.file.name}`,
                     originalSize: originalSizeFromHeader ? parseInt(originalSizeFromHeader) : item.file.size,
-                    compressedSize: compressedSizeFromHeader ? parseInt(compressedSizeFromHeader) : blob.size
+                    compressedSize: compressedSizeFromHeader ? parseInt(compressedSizeFromHeader) : blob.size,
+                    wasCompressed: wasCompressedHeader === 'true'
                 }
             });
 
@@ -156,7 +160,9 @@ export default function CompressPdfPage() {
     const allDone = queue.length > 0 && queue.every(item => item.status === 'done');
 
     return (
-        <div className="py-8 md:py-12">
+        <>
+            <ToolPageHeader title="Compress PDF" />
+            <div className="py-8 md:py-12">
             <div className="container mx-auto px-4 max-w-5xl">
                 <div className="text-center mb-10">
                     <div className="inline-flex items-center justify-center p-3 bg-blue-100 text-blue-600 rounded-xl mb-6">
@@ -165,6 +171,9 @@ export default function CompressPdfPage() {
                     <h1 className="text-4xl font-extrabold text-slate-900 mb-4">Compress PDF</h1>
                     <p className="text-lg text-slate-600 max-w-2xl mx-auto">
                         Reduce your PDF file size while maintaining quality.
+                    </p>
+                    <p className="text-sm text-slate-500 max-w-2xl mx-auto mt-2">
+                        💡 Compression works best on PDFs with images. Text-only PDFs are already optimized and may not compress further.
                     </p>
                 </div>
 
@@ -239,9 +248,9 @@ export default function CompressPdfPage() {
                                                     className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
                                                     disabled={isGlobalCompressing}
                                                 >
-                                                    <option value="max">Max Compression (Low Quality)</option>
-                                                    <option value="standard">Standard (Recommended)</option>
-                                                    <option value="low">Low Compression (High Quality)</option>
+                                                    <option value="max">Max Compression (72 DPI, smaller file)</option>
+                                                    <option value="standard">Standard (150 DPI, balanced)</option>
+                                                    <option value="low">Low Compression (300 DPI, best quality)</option>
                                                 </select>
                                             </div>
                                         )}
@@ -266,13 +275,26 @@ export default function CompressPdfPage() {
                                         {item.status === 'done' && item.result && (
                                             <div className="flex items-center gap-3 ml-auto">
                                                 <div className="text-right">
-                                                    <p className="text-sm font-bold text-green-600">
-                                                        {formatBytes(item.result.compressedSize)}
-                                                    </p>
-                                                    <p className="text-xs text-slate-400 line-through">
-                                                        {formatBytes(item.result.originalSize)}
-                                                    </p>
-                                                    {reduction > 0 && <span className="text-xs font-bold text-green-600">-{reduction}%</span>}
+                                                    {item.result.wasCompressed ? (
+                                                        <>
+                                                            <p className="text-sm font-bold text-green-600">
+                                                                {formatBytes(item.result.compressedSize)}
+                                                            </p>
+                                                            <p className="text-xs text-slate-400 line-through">
+                                                                {formatBytes(item.result.originalSize)}
+                                                            </p>
+                                                            {reduction > 0 && <span className="text-xs font-bold text-green-600">-{reduction}%</span>}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <p className="text-sm font-bold text-blue-600">
+                                                                {formatBytes(item.result.originalSize)}
+                                                            </p>
+                                                            <p className="text-xs text-slate-500">
+                                                                Already optimized
+                                                            </p>
+                                                        </>
+                                                    )}
                                                 </div>
                                                 <a
                                                     href={item.result.url}
@@ -333,6 +355,7 @@ export default function CompressPdfPage() {
                     </div>
                 )}
             </div>
-        </div>
+            </div>
+        </>
     );
 }

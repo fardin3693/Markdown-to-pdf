@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileText, ArrowRight, Download, RefreshCw, Trash2, Image as ImageIcon } from "lucide-react";
+import ToolPageHeader from '@/components/layout/ToolPageHeader';
 import { v4 as uuidv4 } from 'uuid';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical, X } from 'lucide-react';
 
 interface ImageItem {
   id: string;
@@ -13,16 +19,85 @@ interface ImageItem {
   error?: string;
 }
 
+// Sortable Image Item Component
+function SortableImageItem({ item, onRemove }: { item: ImageItem; onRemove: (id: string) => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between group ${isDragging ? 'z-50 shadow-xl' : ''}`}
+    >
+      <div className="flex items-center gap-4">
+        {/* Drag Handle */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical className="w-5 h-5" />
+        </div>
+        
+        {/* Preview Image */}
+        <img 
+          src={item.preview} 
+          alt="preview" 
+          className="w-16 h-16 object-cover rounded-lg border border-slate-200" 
+        />
+        <div>
+          <p className="font-semibold text-slate-900 truncate max-w-[200px]">{item.file.name}</p>
+          <p className="text-xs text-slate-500">{formatBytes(item.file.size)}</p>
+        </div>
+      </div>
+      <button
+        onClick={() => onRemove(item.id)}
+        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+      >
+        <Trash2 className="w-5 h-5" />
+      </button>
+    </div>
+  );
+}
+
+function formatBytes(bytes: number) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + ['Bytes', 'KB', 'MB', 'GB'][i];
+}
+
 export default function ImageToPdfPage() {
   const [queue, setQueue] = useState<ImageItem[]>([]);
   const [isConverting, setIsConverting] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const onDrop = (acceptedFiles: File[]) => {
     const newItems: ImageItem[] = acceptedFiles.map(file => ({
       id: uuidv4(),
       file,
-      preview: URL.createObjectURL(file), // Create preview URL
+      preview: URL.createObjectURL(file),
       status: 'idle'
     }));
     setQueue(prev => [...prev, ...newItems]);
@@ -34,17 +109,22 @@ export default function ImageToPdfPage() {
     multiple: true
   });
 
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + ['Bytes', 'KB', 'MB', 'GB'][i];
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setQueue((items) => {
+        const oldIndex = items.findIndex(i => i.id === active.id);
+        const newIndex = items.findIndex(i => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
   };
 
   const removeItem = (id: string) => {
     setQueue(prev => {
       const item = prev.find(i => i.id === id);
-      if (item) URL.revokeObjectURL(item.preview); // Cleanup
+      if (item) URL.revokeObjectURL(item.preview);
       return prev.filter(i => i.id !== id);
     });
   };
@@ -60,7 +140,7 @@ export default function ImageToPdfPage() {
     });
 
     try {
-      const response = await fetch('/api/tools/image-to-pdf/convert', { // Relative path
+      const response = await fetch('/api/tools/image-to-pdf/convert', {
         method: 'POST',
         body: formData,
       });
@@ -81,7 +161,9 @@ export default function ImageToPdfPage() {
   };
 
   return (
-    <div className="py-8 md:py-12">
+    <>
+      <ToolPageHeader title="Image to PDF" />
+      <div className="py-8 md:py-12">
       <div className="container mx-auto px-4 max-w-5xl">
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center p-3 bg-blue-100 text-blue-600 rounded-xl mb-6">
@@ -89,7 +171,7 @@ export default function ImageToPdfPage() {
           </div>
           <h1 className="text-4xl font-extrabold text-slate-900 mb-4">Image to PDF</h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Convert your images into a single professional PDF document.
+            Convert your images into a single professional PDF document. Drag and drop to reorder pages.
           </p>
         </div>
 
@@ -116,26 +198,35 @@ export default function ImageToPdfPage() {
           </div>
         )}
 
-        {/* File List */}
+        {/* Draggable File List */}
         {queue.length > 0 && !pdfUrl && (
-          <div className="space-y-4 mb-8">
-            {queue.map((item) => (
-              <div key={item.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <img src={item.preview} alt="preview" className="w-16 h-16 object-cover rounded-lg border border-slate-200" />
-                  <div>
-                    <p className="font-semibold text-slate-900 truncate max-w-[200px]">{item.file.name}</p>
-                    <p className="text-xs text-slate-500">{formatBytes(item.file.size)}</p>
-                  </div>
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-700">
+                {queue.length} Image{queue.length !== 1 ? 's' : ''} • Drag to reorder pages
+              </h2>
+            </div>
+            
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={queue.map(item => item.id)}
+                strategy={rectSortingStrategy}
+              >
+                <div className="space-y-3">
+                  {queue.map((item) => (
+                    <SortableImageItem 
+                      key={item.id} 
+                      item={item} 
+                      onRemove={removeItem} 
+                    />
+                  ))}
                 </div>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
+              </SortableContext>
+            </DndContext>
           </div>
         )}
 
@@ -191,6 +282,7 @@ export default function ImageToPdfPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

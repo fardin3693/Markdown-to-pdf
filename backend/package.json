@@ -20,6 +20,7 @@
         "dotenv": "^17.2.3",
         "express": "^4.19.2",
         "fs-extra": "^11.3.2",
+        "libreoffice-convert": "^1.8.1",
         "multer": "^2.0.2",
         "pdf-lib": "^1.17.1",
         "pdf-merger-js": "^5.1.2",

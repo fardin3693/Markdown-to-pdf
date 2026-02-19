@@ -62,16 +62,48 @@ const TOOLS = [
         hoverBorder: 'hover:border-purple-500/30'
     },
     {
+        id: 'doc-to-pdf',
+        title: 'Doc to PDF',
+        description: 'Convert Word documents (DOC, DOCX) to PDF format instantly. Professional formatting preserved.',
+        href: '/tools/doc-to-pdf',
+        icon: FileText,
+        active: true,
+        color: 'text-blue-600',
+        bg: 'bg-blue-50',
+        hoverBorder: 'hover:border-blue-500/30'
+    },
+    {
         id: 'split-pdf',
         title: 'Split PDFs',
         description: 'Extract pages or split a large PDF file into smaller files.',
-        href: '#',
+        href: '/tools/split-pdf',
         icon: Zap,
-        active: false,
-        comingSoon: true,
-        color: 'text-slate-400',
-        bg: 'bg-slate-200/50',
-        hoverBorder: 'hover:border-slate-300'
+        active: true,
+        color: 'text-blue-600',
+        bg: 'bg-blue-50',
+        hoverBorder: 'hover:border-blue-500/30'
+    },
+    {
+        id: 'ppt-to-pdf',
+        title: 'PPT to PDF',
+        description: 'Convert PowerPoint presentations to PDF. Preserve slides and formatting.',
+        href: '/tools/ppt-to-pdf',
+        icon: FileText,
+        active: true,
+        color: 'text-orange-600',
+        bg: 'bg-orange-50',
+        hoverBorder: 'hover:border-orange-500/30'
+    },
+    {
+        id: 'excel-to-pdf',
+        title: 'Excel to PDF',
+        description: 'Convert Excel spreadsheets to PDF format. Data and formatting preserved.',
+        href: '/tools/excel-to-pdf',
+        icon: FileText,
+        active: true,
+        color: 'text-green-600',
+        bg: 'bg-green-50',
+        hoverBorder: 'hover:border-green-500/30'
     }
 ];
 
