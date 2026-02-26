@@ -6,6 +6,29 @@ import { Upload, FileText, ArrowRight, Download, RefreshCw, CheckCircle2, AlertC
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
 import { v4 as uuidv4 } from 'uuid';
 import JSZip from 'jszip';
+import { Metadata } from 'next';
+
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+const docToPdfPath = '/tools/doc-to-pdf';
+const docToPdfUrl = `${siteUrl}${docToPdfPath}`;
+
+export const metadata: Metadata = {
+    title: 'Word to PDF Converter - DOC/DOCX to PDF | PdfWiser',
+    description: 'Convert Word documents to PDF online for free. Convert DOC and DOCX to PDF. Preserve formatting and layout. Fast and secure conversion.',
+    keywords: ['word to pdf', 'doc to pdf', 'docx to pdf', 'convert word to pdf', 'word document to pdf', 'microsoft word to pdf', 'docx converter', 'free word to pdf', 'online word to pdf', 'convert docx to pdf'],
+    openGraph: {
+        title: 'Word to PDF Converter | PdfWiser',
+        description: 'Convert Word documents to PDF online for free. DOC and DOCX supported.',
+        url: docToPdfUrl,
+    },
+    twitter: {
+        title: 'Word to PDF - Free Online Converter',
+        description: 'Free online tool to convert Word documents to PDF.',
+    },
+    alternates: {
+        canonical: docToPdfUrl,
+    },
+};
 
 interface FileQueueItem {
     id: string;

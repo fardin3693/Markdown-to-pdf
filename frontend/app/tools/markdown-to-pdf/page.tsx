@@ -1,21 +1,28 @@
 import type { Metadata } from 'next';
 import MarkdownToPdfClient from '@/components/markdown-to-pdf/MarkdownToPdfClient';
 
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+const markdownToPdfPath = '/tools/markdown-to-pdf';
+const markdownToPdfUrl = `${siteUrl}${markdownToPdfPath}`;
+
 export const metadata: Metadata = {
-    title: 'Markdown to PDF Converter - Free Online Tool | PdfWiser',
-    description: 'Convert Markdown to PDF online for free. Support for LaTeX math, syntax highlighting, and custom styling. Real-time preview and instant conversion.',
-    keywords: ['markdown to pdf', 'md to pdf', 'convert markdown', 'latex support', 'pdf converter', 'markdown editor', 'free pdf tools'],
+    title: 'Markdown to PDF Converter - Free Online | PdfWiser',
+    description: 'Convert Markdown to PDF online for free. Support for LaTeX math equations, syntax highlighting, GitHub Flavored Markdown, and custom styling. Real-time preview.',
+    keywords: ['markdown to pdf', 'md to pdf', 'convert markdown to pdf', 'markdown converter', 'latex to pdf', 'math equations in pdf', 'markdown editor', 'gfm to pdf', 'github markdown to pdf', 'code highlighting pdf', 'markdown pdf converter', 'free markdown to pdf', 'online markdown converter'],
     openGraph: {
         title: 'Markdown to PDF Converter | PdfWiser',
-        description: 'Professional Markdown to PDF converter with LaTeX support, syntax highlighting, and live preview.',
+        description: 'Convert Markdown to PDF with LaTeX support, syntax highlighting, and live preview. 100% free.',
         type: 'website',
-        url: 'https://pdfwiser.com/tools/markdown-to-pdf',
+        url: markdownToPdfUrl,
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Markdown to PDF Converter | PdfWiser',
-        description: 'Convert Markdown documents to PDF instantly. Free and secure.',
-    }
+        title: 'Markdown to PDF Converter - Free Online',
+        description: 'Convert Markdown documents to PDF instantly. Supports LaTeX and code highlighting.',
+    },
+    alternates: {
+        canonical: markdownToPdfUrl,
+    },
 };
 
 export default function MarkdownToPdfPage() {

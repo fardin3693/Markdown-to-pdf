@@ -10,26 +10,72 @@ const nunito = Nunito({
     display: "swap",
 });
 
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, "");
+
 export const metadata: Metadata = {
+    metadataBase: new URL(siteUrl),
     title: {
-        default: "PdfWiser - Free Online PDF Tools (Merge, Compress, Markdown, Images)",
+        default: "PdfWiser - Free Online PDF Tools | Merge, Compress, Convert PDF",
         template: "%s | PdfWiser"
     },
-    description: "Professional-grade PDF tools for everyone. Merge, Compress, Convert Markdown to PDF, PDF to Image, and more. 100% Free and Secure.",
-    keywords: ["markdown to pdf", "merge pdf", "pdf tools", "free pdf converter", "latex to pdf", "compress pdf", "pdf compressor", "image to pdf", "pdf to image"],
+    description: "Free online PDF tools to merge, compress, convert, and edit PDFs. Convert Markdown, Word, Excel, PowerPoint to PDF. No registration required. 100% free and secure.",
+    keywords: [
+        "pdf tools", "free pdf tools", "merge pdf", "compress pdf", "pdf compressor", 
+        "markdown to pdf", "md to pdf", "word to pdf", "excel to pdf", "ppt to pdf",
+        "image to pdf", "jpg to pdf", "png to pdf", "pdf to image", "pdf to word",
+        "pdf to excel", "pdf to ppt", "split pdf", "extract pdf pages", "remove pdf pages",
+        "pdf converter", "free pdf converter", "online pdf tools", "pdf editor",
+        "latex to pdf", "markdown converter", "document to pdf", "convert pdf"
+    ],
+    authors: [{ name: "PdfWiser" }],
+    creator: "PdfWiser",
+    publisher: "PdfWiser",
+    formatDetection: {
+        email: false,
+        address: false,
+        telephone: false,
+    },
     openGraph: {
         type: "website",
         locale: "en_US",
-        url: "https://pdfwiser.com",
-        title: "PdfWiser - Professional PDF Tools",
-        description: "The ultimate suite of PDF tools. Convert Markdown to PDF, Merge, Compress and Manage PDFs.",
+        url: siteUrl,
+        title: "PdfWiser - Free Online PDF Tools | Merge, Compress, Convert",
+        description: "Free online PDF tools to merge, compress, convert, and edit PDFs. Convert Markdown, Word, Excel, PowerPoint to PDF. No registration required.",
         siteName: "PdfWiser",
+        images: [
+            {
+                url: "/og-image.png",
+                width: 1200,
+                height: 630,
+                alt: "PdfWiser - Free Online PDF Tools"
+            }
+        ],
     },
     twitter: {
         card: "summary_large_image",
-        title: "PdfWiser - Smart PDF Tools",
-        description: "Convert Markdown to PDF and manage your documents for free.",
-    }
+        title: "PdfWiser - Free Online PDF Tools",
+        description: "Free online PDF tools to merge, compress, convert, and edit PDFs. 100% free and secure.",
+        images: ["/og-image.png"],
+    },
+    robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+            index: true,
+            follow: true,
+            "max-video-preview": -1,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+        },
+    },
+    alternates: {
+        canonical: siteUrl,
+        languages: {
+            "en-US": siteUrl,
+        },
+    },
+    category: "technology",
+    classification: "Online PDF Tools",
 };
 
 export default function RootLayout({

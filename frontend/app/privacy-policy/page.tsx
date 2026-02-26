@@ -1,8 +1,21 @@
 import type { Metadata } from "next";
 
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+const privacyPath = '/privacy-policy';
+const privacyUrl = `${siteUrl}${privacyPath}`;
+
 export const metadata: Metadata = {
-    title: "Privacy Policy",
-    description: "PdfWiser Privacy Policy - Learn how we protect your data and privacy.",
+    title: "Privacy Policy | PdfWiser - How We Protect Your Data",
+    description: "PdfWiser Privacy Policy - Learn how we protect your data and privacy. We do not store your files. All conversions are processed securely and deleted after download.",
+    keywords: ['privacy policy', 'pdfwiser privacy', 'data protection', 'privacy', 'file privacy', 'pdf privacy', 'data security', 'user privacy', 'cookies policy'],
+    openGraph: {
+        title: "Privacy Policy | PdfWiser",
+        description: "PdfWiser Privacy Policy - How we protect your data and privacy.",
+        url: privacyUrl,
+    },
+    alternates: {
+        canonical: privacyUrl,
+    },
 };
 
 export default function PrivacyPolicyPage() {

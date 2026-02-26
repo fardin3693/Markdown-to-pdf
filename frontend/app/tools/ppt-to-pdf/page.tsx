@@ -6,6 +6,29 @@ import { Upload, FileText, ArrowRight, Download, RefreshCw, Trash2, DownloadClou
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
 import { v4 as uuidv4 } from 'uuid';
 import JSZip from 'jszip';
+import { Metadata } from 'next';
+
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+const pptToPdfPath = '/tools/ppt-to-pdf';
+const pptToPdfUrl = `${siteUrl}${pptToPdfPath}`;
+
+export const metadata: Metadata = {
+    title: 'PowerPoint to PDF Converter - PPT to PDF | PdfWiser',
+    description: 'Convert PowerPoint presentations to PDF online for free. Convert PPT and PPTX to PDF. Preserve slides and formatting. Fast conversion.',
+    keywords: ['powerpoint to pdf', 'ppt to pdf', 'pptx to pdf', 'convert powerpoint to pdf', 'presentation to pdf', 'slides to pdf', 'pptx converter', 'free ppt to pdf', 'online powerpoint to pdf', 'convert pptx to pdf'],
+    openGraph: {
+        title: 'PowerPoint to PDF Converter | PdfWiser',
+        description: 'Convert PowerPoint to PDF online for free. PPT and PPTX supported.',
+        url: pptToPdfUrl,
+    },
+    twitter: {
+        title: 'PowerPoint to PDF - Free Converter',
+        description: 'Free online tool to convert PowerPoint presentations to PDF.',
+    },
+    alternates: {
+        canonical: pptToPdfUrl,
+    },
+};
 
 interface FileQueueItem {
     id: string;

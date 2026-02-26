@@ -6,6 +6,29 @@ import { Upload, FileSpreadsheet, ArrowRight, Download, RefreshCw, Trash2, Downl
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
 import { v4 as uuidv4 } from 'uuid';
 import JSZip from 'jszip';
+import { Metadata } from 'next';
+
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+const pdfToExcelPath = '/tools/pdf-to-excel';
+const pdfToExcelUrl = `${siteUrl}${pdfToExcelPath}`;
+
+export const metadata: Metadata = {
+    title: 'PDF to Excel Converter - Convert PDF to XLSX | PdfWiser',
+    description: 'Convert PDF to Excel spreadsheets online for free. Convert PDF to XLSX. Extract table data from PDF. Fast and accurate conversion.',
+    keywords: ['pdf to excel', 'pdf to xlsx', 'convert pdf to excel', 'pdf to spreadsheet', 'extract table from pdf', 'pdf to xls', 'pdf to excel converter', 'convert pdf to spreadsheet', 'free pdf to excel', 'online pdf to excel'],
+    openGraph: {
+        title: 'PDF to Excel Converter | PdfWiser',
+        description: 'Convert PDF to Excel online for free. Extract table data to XLSX.',
+        url: pdfToExcelUrl,
+    },
+    twitter: {
+        title: 'PDF to Excel - Free Online Converter',
+        description: 'Free online tool to convert PDF to Excel spreadsheets.',
+    },
+    alternates: {
+        canonical: pdfToExcelUrl,
+    },
+};
 
 interface FileQueueItem {
     id: string;

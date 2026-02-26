@@ -7,6 +7,29 @@ import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, UploadCloud, FileText, Scissors, Layers, Plus, Merge, FileOutput, Settings, X } from 'lucide-react';
+import { Metadata } from 'next';
+
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+const splitPdfPath = '/tools/split-pdf';
+const splitPdfUrl = `${siteUrl}${splitPdfPath}`;
+
+export const metadata: Metadata = {
+    title: 'Split PDF - Extract Pages from PDF | PdfWiser',
+    description: 'Split PDF files online for free. Extract pages, divide PDF into multiple files. Specify page ranges. Fast and secure PDF splitter.',
+    keywords: ['split pdf', 'extract pdf pages', 'divide pdf', 'pdf split', 'split pdf into pages', 'extract pages from pdf', 'pdf page extractor', 'split pdf online', 'free pdf splitter', 'break pdf into pages'],
+    openGraph: {
+        title: 'Split PDF - Extract Pages | PdfWiser',
+        description: 'Split PDF files online for free. Extract pages and divide PDFs.',
+        url: splitPdfUrl,
+    },
+    twitter: {
+        title: 'Split PDF - Free Online Tool',
+        description: 'Free online tool to split PDF and extract pages.',
+    },
+    alternates: {
+        canonical: splitPdfUrl,
+    },
+};
 
 const SortableRangeItem = dynamic(() => import('@/components/split-pdf/SortableRangeItem'), { ssr: false });
 const PdfPageThumbnail = dynamic(() => import('@/components/split-pdf/PdfPageThumbnail'), { ssr: false });

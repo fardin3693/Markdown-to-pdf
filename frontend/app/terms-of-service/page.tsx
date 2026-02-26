@@ -1,8 +1,21 @@
 import type { Metadata } from "next";
 
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+const termsPath = '/terms-of-service';
+const termsUrl = `${siteUrl}${termsPath}`;
+
 export const metadata: Metadata = {
-    title: "Terms of Service",
-    description: "PdfWiser Terms of Service - Terms and conditions for using our PDF tools.",
+    title: "Terms of Service | PdfWiser - Terms and Conditions",
+    description: "PdfWiser Terms of Service - Terms and conditions for using our free online PDF tools. Learn about user responsibilities, intellectual property, and disclaimers.",
+    keywords: ['terms of service', 'terms and conditions', 'pdfwiser terms', 'terms', 'conditions', 'user agreement', 'service terms', 'legal terms'],
+    openGraph: {
+        title: "Terms of Service | PdfWiser",
+        description: "PdfWiser Terms of Service - Terms and conditions for using our PDF tools.",
+        url: termsUrl,
+    },
+    alternates: {
+        canonical: termsUrl,
+    },
 };
 
 export default function TermsOfServicePage() {

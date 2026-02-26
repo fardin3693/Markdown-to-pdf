@@ -6,6 +6,29 @@ import { Upload, FileText, ArrowRight, Download, RefreshCw, Trash2, DownloadClou
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
 import { v4 as uuidv4 } from 'uuid';
 import JSZip from 'jszip';
+import { Metadata } from 'next';
+
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+const excelToPdfPath = '/tools/excel-to-pdf';
+const excelToPdfUrl = `${siteUrl}${excelToPdfPath}`;
+
+export const metadata: Metadata = {
+    title: 'Excel to PDF Converter - XLS/XLSX to PDF | PdfWiser',
+    description: 'Convert Excel spreadsheets to PDF online for free. Convert XLS and XLSX to PDF. Preserve data and formatting. Fast and secure.',
+    keywords: ['excel to pdf', 'xls to pdf', 'xlsx to pdf', 'convert excel to pdf', 'spreadsheet to pdf', 'excel converter', 'free excel to pdf', 'online excel to pdf', 'convert xlsx to pdf', 'xls converter'],
+    openGraph: {
+        title: 'Excel to PDF Converter | PdfWiser',
+        description: 'Convert Excel spreadsheets to PDF online for free. XLS and XLSX supported.',
+        url: excelToPdfUrl,
+    },
+    twitter: {
+        title: 'Excel to PDF - Free Online Converter',
+        description: 'Free online tool to convert Excel spreadsheets to PDF.',
+    },
+    alternates: {
+        canonical: excelToPdfUrl,
+    },
+};
 
 interface FileQueueItem {
     id: string;
