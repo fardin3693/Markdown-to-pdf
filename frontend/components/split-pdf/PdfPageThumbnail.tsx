@@ -1,13 +1,17 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from "react";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 
 interface PdfPageThumbnailProps {
-    pdfDoc: any;
+    pdfDoc: PDFDocumentProxy;
     pageNum: number;
 }
 
-export default function PdfPageThumbnail({ pdfDoc, pageNum }: PdfPageThumbnailProps) {
+export default function PdfPageThumbnail({
+    pdfDoc,
+    pageNum,
+}: PdfPageThumbnailProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
@@ -23,7 +27,7 @@ export default function PdfPageThumbnail({ pdfDoc, pageNum }: PdfPageThumbnailPr
                     observer.disconnect();
                 }
             },
-            { rootMargin: '200px' } // Start loading 200px before visible
+            { rootMargin: "200px" }, // Start loading 200px before visible
         );
 
         if (containerRef.current) {
@@ -41,8 +45,8 @@ export default function PdfPageThumbnail({ pdfDoc, pageNum }: PdfPageThumbnailPr
                 setLoading(true);
                 const page = await pdfDoc.getPage(pageNum);
                 const canvas = canvasRef.current!;
-                const context = canvas.getContext('2d');
-                
+                const context = canvas.getContext("2d");
+
                 if (!context) {
                     setError(true);
                     return;
@@ -50,7 +54,7 @@ export default function PdfPageThumbnail({ pdfDoc, pageNum }: PdfPageThumbnailPr
 
                 // Use a reasonable scale for thumbnails
                 const viewport = page.getViewport({ scale: 0.5 });
-                
+
                 // Set canvas dimensions
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
@@ -58,11 +62,12 @@ export default function PdfPageThumbnail({ pdfDoc, pageNum }: PdfPageThumbnailPr
                 await page.render({
                     canvasContext: context,
                     viewport: viewport,
+                    canvas: canvas,
                 }).promise;
 
                 setLoading(false);
             } catch (err) {
-                console.error('Error rendering page:', err);
+                console.error("Error rendering page:", err);
                 setError(true);
                 setLoading(false);
             }
@@ -72,17 +77,22 @@ export default function PdfPageThumbnail({ pdfDoc, pageNum }: PdfPageThumbnailPr
     }, [isVisible, pdfDoc, pageNum]);
 
     return (
-        <div ref={containerRef} className="w-full h-full flex items-center justify-center">
+        <div
+            ref={containerRef}
+            className="w-full h-full flex items-center justify-center"
+        >
             {loading && !error && (
                 <div className="absolute inset-0 animate-pulse bg-slate-200" />
             )}
             {error ? (
-                <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">Error</div>
+                <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
+                    Error
+                </div>
             ) : (
-                <canvas 
-                    ref={canvasRef} 
+                <canvas
+                    ref={canvasRef}
                     className="max-w-full max-h-full object-contain"
-                    style={{ display: loading ? 'none' : 'block' }}
+                    style={{ display: loading ? "none" : "block" }}
                 />
             )}
         </div>

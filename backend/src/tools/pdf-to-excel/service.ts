@@ -5,54 +5,55 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
-async function findLibreOfficePath(): Promise<string | undefined> {
-    const winPaths = [
-        'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
-        'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
-        'C:\\Program Files\\LibreOffice 24\\program\\soffice.exe',
-        'C:\\Program Files\\LibreOffice 25\\program\\soffice.exe',
-    ];
-
-    for (const p of winPaths) {
-        if (fs.existsSync(p)) {
-            return p;
-        }
-    }
-
-    try {
-        const { stdout } = await execAsync('where soffice');
-        return stdout.trim().split('\n')[0];
-    } catch {
-        return undefined;
-    }
-}
+const PYTHON_PATH = process.env.PYTHON_PATH || 'C:\\Users\\fardi\\AppData\\Local\\Programs\\Python\\Python314\\python.exe';
 
 export const convertPdfToExcel = async (inputPath: string, outputPath: string): Promise<void> => {
-    const libreOfficePath = await findLibreOfficePath();
-    
-    if (!libreOfficePath) {
-        throw new Error('LibreOffice not found. Please ensure LibreOffice is installed.');
-    }
+    const script = `
+import sys
+import pdfplumber
+import pandas as pd
 
-    const dir = path.dirname(outputPath);
-    const inputBasenameWithoutExt = path.parse(inputPath).name;
-    
-    const cmd = `"${libreOfficePath}" --headless --convert-to xlsx --outdir "${dir}" "${inputPath}"`;
+input_path = sys.argv[1]
+output_path = sys.argv[2]
 
+all_tables = []
+with pdfplumber.open(input_path) as pdf:
+    for page in pdf.pages:
+        tables = page.extract_tables()
+        for table in tables:
+            if table:
+                df = pd.DataFrame(table[1:], columns=table[0])
+                all_tables.append(df)
+
+if all_tables:
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        for i, df in enumerate(all_tables):
+            df.to_excel(writer, sheet_name=f'Table_{i+1}', index=False)
+else:
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        pd.DataFrame().to_excel(writer, sheet_name='No_Data', index=False)
+`;
+
+    const tempScript = path.join(path.dirname(outputPath), 'convert_pdf_to_excel.py');
+    
     try {
-        await execAsync(cmd);
+        await fs.writeFile(tempScript, script);
         
-        const libreOfficeOutput = path.join(dir, `${inputBasenameWithoutExt}.xlsx`);
+        const { stdout, stderr } = await execAsync(`"${PYTHON_PATH}" "${tempScript}" "${inputPath}" "${outputPath}"`);
         
-        if (await fs.pathExists(libreOfficeOutput)) {
-            if (libreOfficeOutput !== outputPath) {
-                await fs.move(libreOfficeOutput, outputPath, { overwrite: true });
-            }
-        } else {
-            throw new Error(`XLSX was not created. Expected at: ${libreOfficeOutput}`);
+        if (stderr && !stderr.includes('WARNING')) {
+            console.error('Python stderr:', stderr);
+        }
+        
+        if (!await fs.pathExists(outputPath)) {
+            throw new Error(`XLSX was not created. Python output: ${stderr || stdout}`);
         }
     } catch (error: any) {
         console.error('PDF to Excel conversion error:', error);
         throw new Error(`Conversion failed: ${error.message}`);
+    } finally {
+        try {
+            await fs.unlink(tempScript);
+        } catch {}
     }
 };

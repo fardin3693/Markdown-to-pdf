@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { X, ChevronUp, ChevronDown } from 'lucide-react';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { X, ChevronUp, ChevronDown } from "lucide-react";
 
 interface FindReplaceBarProps {
     isOpen: boolean;
@@ -66,7 +66,11 @@ export default function FindReplaceBar({
                     <ChevronDown className="h-4 w-4" />
                 </Button>
                 <span className="text-xs text-slate-500 min-w-[60px]">
-                    {searchTerm ? (matchCount > 0 ? `${currentMatch}/${matchCount}` : 'No results') : ''}
+                    {searchTerm
+                        ? matchCount > 0
+                            ? `${currentMatch}/${matchCount}`
+                            : "No results"
+                        : ""}
                 </span>
             </div>
 

@@ -7,6 +7,9 @@ import docToPdfRoutes from './tools/doc-to-pdf/routes';
 import splitPdfRoutes from './tools/split-pdf/routes';
 import pptToPdfRoutes from './tools/ppt-to-pdf/routes';
 import excelToPdfRoutes from './tools/excel-to-pdf/routes';
+import pdfToPptRoutes from './tools/pdf-to-ppt/routes';
+import pdfToExcelRoutes from './tools/pdf-to-excel/routes';
+import pdfToWordRoutes from './tools/pdf-to-word/routes';
 
 const router = Router();
 
@@ -19,6 +22,9 @@ router.use('/tools/doc-to-pdf', docToPdfRoutes);
 router.use('/tools/split-pdf', splitPdfRoutes);
 router.use('/tools/ppt-to-pdf', pptToPdfRoutes);
 router.use('/tools/excel-to-pdf', excelToPdfRoutes);
+router.use('/tools/pdf-to-ppt', pdfToPptRoutes);
+router.use('/tools/pdf-to-excel', pdfToExcelRoutes);
+router.use('/tools/pdf-to-word', pdfToWordRoutes);
 
 // Legacy/Root mounts (if needed for API simplification)
 router.use('/', markdownToPdfRoutes); // Exposes /convert

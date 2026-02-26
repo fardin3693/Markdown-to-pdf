@@ -25,6 +25,7 @@
         "pdf-lib": "^1.17.1",
         "pdf-merger-js": "^5.1.2",
         "pdfjs-dist": "^5.4.449",
+        "pptxgenjs": "^4.0.1",
         "puppeteer": "^22.6.0",
         "rehype-document": "^7.0.3",
         "rehype-format": "^5.0.0",

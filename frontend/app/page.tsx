@@ -104,6 +104,39 @@ const TOOLS = [
         color: 'text-green-600',
         bg: 'bg-green-50',
         hoverBorder: 'hover:border-green-500/30'
+    },
+    {
+        id: 'pdf-to-ppt',
+        title: 'PDF to PPT',
+        description: 'Convert PDF files to editable PowerPoint presentations.',
+        href: '/tools/pdf-to-ppt',
+        icon: FileText,
+        active: true,
+        color: 'text-orange-600',
+        bg: 'bg-orange-50',
+        hoverBorder: 'hover:border-orange-500/30'
+    },
+    {
+        id: 'pdf-to-excel',
+        title: 'PDF to Excel',
+        description: 'Convert PDF files to editable Excel spreadsheets.',
+        href: '/tools/pdf-to-excel',
+        icon: FileText,
+        active: true,
+        color: 'text-green-600',
+        bg: 'bg-green-50',
+        hoverBorder: 'hover:border-green-500/30'
+    },
+    {
+        id: 'pdf-to-word',
+        title: 'PDF to Word',
+        description: 'Convert PDF files to editable Word documents.',
+        href: '/tools/pdf-to-word',
+        icon: FileText,
+        active: true,
+        color: 'text-blue-600',
+        bg: 'bg-blue-50',
+        hoverBorder: 'hover:border-blue-500/30'
     }
 ];
 
