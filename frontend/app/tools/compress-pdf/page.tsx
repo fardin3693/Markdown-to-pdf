@@ -6,29 +6,6 @@ import { Upload, FileText, ArrowRight, Download, RefreshCw, CheckCircle2, AlertC
 import { v4 as uuidv4 } from 'uuid';
 import JSZip from 'jszip';
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
-import { Metadata } from 'next';
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
-const compressPdfPath = '/tools/compress-pdf';
-const compressPdfUrl = `${siteUrl}${compressPdfPath}`;
-
-export const metadata: Metadata = {
-    title: 'Compress PDF - Reduce PDF File Size Online | PdfWiser',
-    description: 'Compress PDF files online for free. Reduce PDF file size while maintaining quality. Choose from max, standard, or low compression levels. Fast and secure.',
-    keywords: ['compress pdf', 'reduce pdf size', 'pdf compressor', 'shrink pdf', 'optimize pdf', 'smaller pdf', 'pdf compression', 'free pdf compressor', 'compress pdf online', 'reduce pdf file size'],
-    openGraph: {
-        title: 'Compress PDF - Reduce File Size | PdfWiser',
-        description: 'Compress PDF files online for free. Reduce file size while maintaining quality.',
-        url: compressPdfUrl,
-    },
-    twitter: {
-        title: 'Compress PDF - Reduce File Size Free',
-        description: 'Free online tool to compress PDF files and reduce file size.',
-    },
-    alternates: {
-        canonical: compressPdfUrl,
-    },
-};
 
 type CompressionLevel = 'max' | 'standard' | 'low';
 

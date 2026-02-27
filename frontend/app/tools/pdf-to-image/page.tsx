@@ -4,29 +4,6 @@ import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileText, ArrowRight, Download, RefreshCw, Image as ImageIcon } from "lucide-react";
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
-import { Metadata } from 'next';
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
-const pdfToImagePath = '/tools/pdf-to-image';
-const pdfToImageUrl = `${siteUrl}${pdfToImagePath}`;
-
-export const metadata: Metadata = {
-    title: 'PDF to Image Converter - Free Online | PdfWiser',
-    description: 'Convert PDF to images online for free. Extract PDF pages as PNG images. Download all pages as ZIP file. High quality conversion.',
-    keywords: ['pdf to image', 'pdf to png', 'pdf to jpg', 'convert pdf to image', 'extract pdf pages', 'pdf to jpeg', 'pdf to image converter', 'free pdf to image', 'pdf to picture', 'pdf pages to images'],
-    openGraph: {
-        title: 'PDF to Image Converter | PdfWiser',
-        description: 'Convert PDF to images online. Extract pages as PNG files.',
-        url: pdfToImageUrl,
-    },
-    twitter: {
-        title: 'PDF to Image - Free Online Converter',
-        description: 'Free online tool to convert PDF to images.',
-    },
-    alternates: {
-        canonical: pdfToImageUrl,
-    },
-};
 
 export default function PdfToImagePage() {
     const [file, setFile] = useState<File | null>(null);

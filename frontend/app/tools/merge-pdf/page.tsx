@@ -5,7 +5,6 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
 import DropZone from '@/components/merge-pdf/DropZone';
 import dynamic from 'next/dynamic';
-import { Metadata } from 'next';
 
 const SortablePdfItem = dynamic(() => import('@/components/merge-pdf/SortablePdfItem'), {
     ssr: false,
@@ -14,28 +13,6 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Download, UploadCloud } from 'lucide-react';
 import Link from 'next/link';
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
-const mergePdfPath = '/tools/merge-pdf';
-const mergePdfUrl = `${siteUrl}${mergePdfPath}`;
-
-export const metadata: Metadata = {
-    title: 'Merge PDF - Combine Multiple PDFs into One | PdfWiser',
-    description: 'Merge PDF files online for free. Combine multiple PDF documents into a single file. Drag and drop to reorder pages. Fast, secure, and no registration required.',
-    keywords: ['merge pdf', 'combine pdf', 'join pdf', 'merge pdf files', 'combine pdf files', 'merge multiple pdf', 'join pdf files', 'pdf merger', 'free pdf merger', 'merge documents'],
-    openGraph: {
-        title: 'Merge PDF - Combine Multiple PDFs | PdfWiser',
-        description: 'Merge PDF files online for free. Combine multiple PDF documents into a single file with drag and drop reordering.',
-        url: mergePdfUrl,
-    },
-    twitter: {
-        title: 'Merge PDF - Combine PDFs Free',
-        description: 'Free online tool to merge PDF files. Combine multiple PDFs into one.',
-    },
-    alternates: {
-        canonical: mergePdfUrl,
-    },
-};
 
 // Simple ID generator
 const generateId = () => Math.random().toString(36).substring(2, 9);

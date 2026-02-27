@@ -7,29 +7,6 @@ import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, UploadCloud, FileText, Scissors, Layers, Plus, Merge, FileOutput, Settings, X } from 'lucide-react';
-import { Metadata } from 'next';
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
-const splitPdfPath = '/tools/split-pdf';
-const splitPdfUrl = `${siteUrl}${splitPdfPath}`;
-
-export const metadata: Metadata = {
-    title: 'Split PDF - Extract Pages from PDF | PdfWiser',
-    description: 'Split PDF files online for free. Extract pages, divide PDF into multiple files. Specify page ranges. Fast and secure PDF splitter.',
-    keywords: ['split pdf', 'extract pdf pages', 'divide pdf', 'pdf split', 'split pdf into pages', 'extract pages from pdf', 'pdf page extractor', 'split pdf online', 'free pdf splitter', 'break pdf into pages'],
-    openGraph: {
-        title: 'Split PDF - Extract Pages | PdfWiser',
-        description: 'Split PDF files online for free. Extract pages and divide PDFs.',
-        url: splitPdfUrl,
-    },
-    twitter: {
-        title: 'Split PDF - Free Online Tool',
-        description: 'Free online tool to split PDF and extract pages.',
-    },
-    alternates: {
-        canonical: splitPdfUrl,
-    },
-};
 
 const SortableRangeItem = dynamic(() => import('@/components/split-pdf/SortableRangeItem'), { ssr: false });
 const PdfPageThumbnail = dynamic(() => import('@/components/split-pdf/PdfPageThumbnail'), { ssr: false });
@@ -107,6 +84,7 @@ export default function SplitPdfPage() {
     const [mergeRanges, setMergeRanges] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
+    const [lastClickedPage, setLastClickedPage] = useState<number | null>(null);
     const [currentRangeIndex, setCurrentRangeIndex] = useState<number>(0);
 
     const sensors = useSensors(
@@ -211,34 +189,37 @@ export default function SplitPdfPage() {
         }
     };
 
-    const handlePageClick = useCallback((pageNum: number) => {
-        if (mode === 'range' && rangeSubMode === 'custom') {
-            const currentRange = ranges[currentRangeIndex];
-            if (!currentRange) return;
-
-            const newRanges = [...ranges];
-            if (pageNum < currentRange.from) {
-                newRanges[currentRangeIndex] = { ...currentRange, from: pageNum, to: Math.max(currentRange.to, pageNum) };
-            } else if (pageNum > currentRange.to) {
-                newRanges[currentRangeIndex] = { ...currentRange, to: pageNum, from: Math.min(currentRange.from, pageNum) };
-            } else {
-                newRanges[currentRangeIndex] = { ...currentRange, from: pageNum, to: pageNum };
-            }
-            setRanges(newRanges);
-        } else if (mode === 'pages' && pagesSubMode === 'select') {
+    const handlePageClick = useCallback((pageNum: number, shiftKey: boolean) => {
+        // Only handle visual selection in "Pages → Select" mode,
+        // so behavior matches "Remove PDF Pages" tool.
+        if (mode === 'pages' && pagesSubMode === 'select') {
             setSelectedPages(prev => {
                 const newSet = new Set(prev);
-                if (newSet.has(pageNum)) {
-                    newSet.delete(pageNum);
+
+                if (shiftKey && lastClickedPage !== null) {
+                    const start = Math.min(lastClickedPage, pageNum);
+                    const end = Math.max(lastClickedPage, pageNum);
+                    for (let p = start; p <= end; p++) {
+                        newSet.add(p);
+                    }
                 } else {
-                    newSet.add(pageNum);
+                    if (newSet.has(pageNum)) {
+                        newSet.delete(pageNum);
+                    } else {
+                        newSet.add(pageNum);
+                    }
                 }
+
                 const pages = Array.from(newSet).sort((a, b) => a - b);
                 setPageNumbers(pages.join(', '));
+
                 return newSet;
             });
+            if (!shiftKey) {
+                setLastClickedPage(pageNum);
+            }
         }
-    }, [mode, rangeSubMode, pagesSubMode, ranges, currentRangeIndex]);
+    }, [mode, pagesSubMode, lastClickedPage]);
 
     const selectedPageCount = useMemo(() => {
         if (mode === 'pages' && pagesSubMode === 'select') {
@@ -584,7 +565,7 @@ export default function SplitPdfPage() {
                                 return (
                                     <div
                                         key={pageNum}
-                                        onClick={() => handlePageClick(pageNum)}
+                                        onClick={(e) => handlePageClick(pageNum, e.shiftKey)}
                                         className={`relative bg-white rounded-lg border-2 overflow-hidden cursor-pointer transition-all hover:shadow-md ${
                                             highlight ? color : 'border-slate-200 hover:border-slate-300'
                                         } ${isCurrentRange ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}

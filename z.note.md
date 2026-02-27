@@ -20,8 +20,9 @@ sudo apt-get install -y libreoffice
 # Verify installation
 libreoffice --version
 ```
-
-### 3. Chromium Dependencies (Required for: Markdown to PDF)
+### 3. Install python
+install python programming language as well as modules and packages from the website. 
+### 4. Chromium Dependencies (Required for: Markdown to PDF)
 Puppeteer auto-downloads Chromium on `npm install`, but Linux servers need these system dependencies:
 ```bash
 # Ubuntu/Debian

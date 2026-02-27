@@ -6,29 +6,6 @@ import { Upload, FileText, ArrowRight, Download, RefreshCw, Trash2, DownloadClou
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
 import { v4 as uuidv4 } from 'uuid';
 import JSZip from 'jszip';
-import { Metadata } from 'next';
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
-const pdfToWordPath = '/tools/pdf-to-word';
-const pdfToWordUrl = `${siteUrl}${pdfToWordPath}`;
-
-export const metadata: Metadata = {
-    title: 'PDF to Word Converter - Convert PDF to DOCX | PdfWiser',
-    description: 'Convert PDF to Word documents online for free. Convert PDF to DOCX. Edit PDF content in Word. Extract text from PDF. Fast conversion.',
-    keywords: ['pdf to word', 'pdf to docx', 'convert pdf to word', 'pdf to doc', 'convert pdf to word document', 'pdf to microsoft word', 'extract text to word', 'pdf to word converter free', 'online pdf to word', 'convert pdf to editable word'],
-    openGraph: {
-        title: 'PDF to Word Converter | PdfWiser',
-        description: 'Convert PDF to Word online for free. Extract text and convert to DOCX.',
-        url: pdfToWordUrl,
-    },
-    twitter: {
-        title: 'PDF to Word - Free Online Converter',
-        description: 'Free online tool to convert PDF to Word documents.',
-    },
-    alternates: {
-        canonical: pdfToWordUrl,
-    },
-};
 
 interface FileQueueItem {
     id: string;

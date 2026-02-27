@@ -4,30 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, UploadCloud, FileText, Trash2, X } from 'lucide-react';
-import { Metadata } from 'next';
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
-const removePdfPagesPath = '/tools/remove-pdf-pages';
-const removePdfPagesUrl = `${siteUrl}${removePdfPagesPath}`;
-
-export const metadata: Metadata = {
-    title: 'Remove PDF Pages - Delete Pages from PDF | PdfWiser',
-    description: 'Remove pages from PDF online for free. Delete specific pages from PDF. Select pages to remove with thumbnails or page numbers. Fast and secure.',
-    keywords: ['remove pdf pages', 'delete pdf pages', 'delete pages from pdf', 'remove pages from pdf', 'pdf page remover', 'delete pdf pages online', 'remove pdf pages free', 'erase pdf pages', 'pdf page deletion', 'remove pages pdf'],
-    openGraph: {
-        title: 'Remove PDF Pages | PdfWiser',
-        description: 'Remove pages from PDF online for free. Delete specific pages.',
-        url: removePdfPagesUrl,
-    },
-    twitter: {
-        title: 'Remove PDF Pages - Free Online',
-        description: 'Free online tool to remove pages from PDF.',
-    },
-    alternates: {
-        canonical: removePdfPagesUrl,
-    },
-};
+import { Loader2, UploadCloud, FileText, Trash2, X, Settings } from 'lucide-react';
 
 const PdfPageThumbnail = dynamic(() => import('@/components/split-pdf/PdfPageThumbnail'), { ssr: false });
 
@@ -70,6 +47,7 @@ export default function RemovePdfPagesPage() {
     const [pdfDoc, setPdfDoc] = useState<any>(null);
     const [totalPages, setTotalPages] = useState<number>(0);
     const [pagesToRemove, setPagesToRemove] = useState<Set<number>>(new Set());
+    const [lastClickedPage, setLastClickedPage] = useState<number | null>(null);
     const [pageNumbers, setPageNumbers] = useState<string>('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isDraggingOnWindow, setIsDraggingOnWindow] = useState(false);
@@ -139,19 +117,34 @@ export default function RemovePdfPagesPage() {
         }
     };
 
-    const handlePageClick = useCallback((pageNum: number) => {
+    const handlePageClick = useCallback((pageNum: number, shiftKey: boolean) => {
         setPagesToRemove(prev => {
             const newSet = new Set(prev);
-            if (newSet.has(pageNum)) {
-                newSet.delete(pageNum);
+
+            if (shiftKey && lastClickedPage !== null) {
+                const start = Math.min(lastClickedPage, pageNum);
+                const end = Math.max(lastClickedPage, pageNum);
+                for (let p = start; p <= end; p++) {
+                    newSet.add(p);
+                }
             } else {
-                newSet.add(pageNum);
+                if (newSet.has(pageNum)) {
+                    newSet.delete(pageNum);
+                } else {
+                    newSet.add(pageNum);
+                }
             }
+
             const pages = Array.from(newSet).sort((a, b) => a - b);
             setPageNumbers(pages.join(', '));
+
+            if (!shiftKey) {
+                setLastClickedPage(pageNum);
+            }
+
             return newSet;
         });
-    }, []);
+    }, [lastClickedPage]);
 
     const handlePageNumbersChange = useCallback((value: string) => {
         setPageNumbers(value);
@@ -273,7 +266,7 @@ export default function RemovePdfPagesPage() {
                         className="lg:hidden p-2 hover:bg-slate-100 rounded-lg"
                         aria-label="Toggle settings"
                     >
-                        {sidebarOpen ? <X className="w-5 h-5" /> : <Trash2 className="w-5 h-5" />}
+                        {sidebarOpen ? <X className="w-5 h-5" /> : <Settings className="w-5 h-5" />}
                     </button>
                 </div>
             </div>
@@ -310,7 +303,7 @@ export default function RemovePdfPagesPage() {
                                 return (
                                     <div
                                         key={pageNum}
-                                        onClick={() => handlePageClick(pageNum)}
+                                        onClick={(e) => handlePageClick(pageNum, e.shiftKey)}
                                         className={`relative bg-white rounded-lg border-2 overflow-hidden cursor-pointer transition-all hover:shadow-md ${
                                             isSelected ? 'border-red-400 bg-red-50' : 'border-slate-200 hover:border-slate-300'
                                         }`}
@@ -338,16 +331,16 @@ export default function RemovePdfPagesPage() {
                     )}
                 </div>
 
+                {sidebarOpen && (
+                    <div 
+                        className="fixed inset-0 bg-black/30 lg:hidden z-40"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                )}
+
                 <div className={`fixed lg:relative inset-y-0 right-0 w-full sm:w-80 bg-white border-l border-slate-200 flex flex-col h-full transform transition-transform lg:transform-none z-50 ${
                     sidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
                 }`}>
-                    {sidebarOpen && (
-                        <div 
-                            className="fixed inset-0 bg-black/30 lg:hidden z-40"
-                            onClick={() => setSidebarOpen(false)}
-                        />
-                    )}
-                    
                     <div className="lg:hidden flex items-center justify-between p-3 border-b border-slate-200 bg-slate-50">
                         <span className="font-semibold text-slate-700">Settings</span>
                         <button
@@ -360,6 +353,27 @@ export default function RemovePdfPagesPage() {
                     </div>
                     
                     <div className="p-3 sm:p-4 border-b border-slate-200">
+                        <Button
+                            size="lg"
+                            className="w-full font-bold shadow-lg shadow-red-500/20 bg-red-500 hover:bg-red-600"
+                            onClick={handleRemovePages}
+                            disabled={isProcessing || !file || removedPageCount === 0 || remainingPageCount === 0}
+                        >
+                            {isProcessing ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Processing...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    {file ? `Remove ${removedPageCount} Page(s)` : 'Remove Pages'}
+                                </>
+                            )}
+                        </Button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 pb-20 lg:pb-4 scroll-smooth">
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                             <p className="text-sm text-amber-800">
                                 <Trash2 className="w-4 h-4 inline mr-1" />
@@ -397,25 +411,6 @@ export default function RemovePdfPagesPage() {
                                 </div>
                             </div>
                         )}
-
-                        <Button
-                            size="lg"
-                            className="w-full font-bold shadow-lg shadow-red-500/20 bg-red-500 hover:bg-red-600"
-                            onClick={handleRemovePages}
-                            disabled={isProcessing || !file || removedPageCount === 0 || remainingPageCount === 0}
-                        >
-                            {isProcessing ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Processing...
-                                </>
-                            ) : (
-                                <>
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    {file ? `Remove ${removedPageCount} Page(s)` : 'Remove Pages'}
-                                </>
-                            )}
-                        </Button>
                     </div>
                 </div>
             </div>

@@ -10,29 +10,6 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStr
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, X } from 'lucide-react';
-import { Metadata } from 'next';
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
-const imageToPdfPath = '/tools/image-to-pdf';
-const imageToPdfUrl = `${siteUrl}${imageToPdfPath}`;
-
-export const metadata: Metadata = {
-    title: 'Image to PDF Converter - Free Online | PdfWiser',
-    description: 'Convert images to PDF online for free. Convert JPG, PNG, JPEG to PDF. Merge multiple images into a single PDF. Fast, easy, and secure.',
-    keywords: ['image to pdf', 'jpg to pdf', 'png to pdf', 'jpeg to pdf', 'convert image to pdf', 'picture to pdf', 'photos to pdf', 'image to pdf converter', 'free image to pdf', 'multiple images to pdf', 'merge images to pdf'],
-    openGraph: {
-        title: 'Image to PDF Converter | PdfWiser',
-        description: 'Convert images to PDF online for free. Convert JPG, PNG to PDF.',
-        url: imageToPdfUrl,
-    },
-    twitter: {
-        title: 'Image to PDF - Free Online Converter',
-        description: 'Free online tool to convert images to PDF.',
-    },
-    alternates: {
-        canonical: imageToPdfUrl,
-    },
-};
 
 interface ImageItem {
   id: string;

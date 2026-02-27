@@ -6,29 +6,6 @@ import { Upload, FileText, ArrowRight, Download, RefreshCw, Trash2, DownloadClou
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
 import { v4 as uuidv4 } from 'uuid';
 import JSZip from 'jszip';
-import { Metadata } from 'next';
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
-const pdfToPptPath = '/tools/pdf-to-ppt';
-const pdfToPptUrl = `${siteUrl}${pdfToPptPath}`;
-
-export const metadata: Metadata = {
-    title: 'PDF to PowerPoint Converter - PDF to PPT | PdfWiser',
-    description: 'Convert PDF to PowerPoint presentations online for free. Convert PDF to PPTX. Extract slides from PDF. Fast and easy conversion.',
-    keywords: ['pdf to powerpoint', 'pdf to ppt', 'pdf to pptx', 'convert pdf to powerpoint', 'pdf to presentation', 'convert pdf to pptx', 'pdf to slides', 'pdf to powerpoint converter', 'free pdf to ppt', 'online pdf to powerpoint'],
-    openGraph: {
-        title: 'PDF to PowerPoint Converter | PdfWiser',
-        description: 'Convert PDF to PowerPoint online for free. Extract slides to PPTX.',
-        url: pdfToPptUrl,
-    },
-    twitter: {
-        title: 'PDF to PowerPoint - Free Converter',
-        description: 'Free online tool to convert PDF to PowerPoint presentations.',
-    },
-    alternates: {
-        canonical: pdfToPptUrl,
-    },
-};
 
 interface FileQueueItem {
     id: string;
