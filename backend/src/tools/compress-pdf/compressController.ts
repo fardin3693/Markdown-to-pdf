@@ -5,6 +5,8 @@ import os from 'os';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { compress } = require('compress-pdf');
 
+const ghostscriptBinary = process.platform === 'win32' ? 'gswin64c' : 'gs';
+
 export const compressPdfHandler = async (req: Request, res: Response) => {
     try {
         if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
@@ -103,14 +105,14 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
             console.log('Calling compress-pdf with:', {
                 inputPath,
                 outputDir,
-                gsModule: 'gswin64c',
+                gsModule: ghostscriptBinary,
                 compressionLevel,
                 argsCount: gsArgs.length
             });
 
             const compressedBuffer = await compress(inputPath, {
                 output: outputDir,
-                gsModule: 'gswin64c',
+                gsModule: ghostscriptBinary,
                 args: gsArgs
             });
 

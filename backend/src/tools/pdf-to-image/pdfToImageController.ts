@@ -1,38 +1,40 @@
 import { Request, Response } from 'express';
-import puppeteer from 'puppeteer';
 import archiver from 'archiver';
+import { getBrowser } from '../../lib/browser';
 
 export const pdfToImageHandler = async (req: Request, res: Response) => {
+    // Evaluated lazily (inside the handler) so dotenv.config() in index.ts has
+    // already run by the time the first request arrives.
+    const port = process.env.PORT || 3001;
+    const PDFJS_URL = `http://localhost:${port}/assets/pdf.min.js`;
+    const PDFJS_WORKER_URL = `http://localhost:${port}/assets/pdf.worker.min.js`;
     const file = req.file;
 
     if (!file) {
         return res.status(400).json({ error: 'No PDF provided' });
     }
 
-    const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+    // Reuse the shared browser instance instead of launching a new one per request.
+    const browser = await getBrowser();
+    const page = await browser.newPage();
 
     try {
-        const page = await browser.newPage();
-
         // Pass the PDF data as base64
         const pdfBase64 = file.buffer.toString('base64');
 
-        // Use addScriptTag to inject PDF.js and the conversion logic as raw JS
+        // Load a blank page then inject PDF.js from the local static server.
         await page.setContent(`<html><head></head><body></body></html>`);
-        await page.addScriptTag({ url: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js' });
+        await page.addScriptTag({ url: PDFJS_URL });
 
-        // Wait a moment for the script to initialize
+        // Wait for PDF.js to initialise
         await page.waitForFunction(() => typeof (window as any).pdfjsLib !== 'undefined', { timeout: 10000 });
 
-        // Set the worker source
-        await page.evaluate(() => {
-            (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        });
+        // Point the worker at the local copy too
+        await page.evaluate((workerUrl: string) => {
+            (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+        }, PDFJS_WORKER_URL);
 
-        // Now run the conversion - using Promise chains to avoid __awaiter issue
+        // Run the conversion – Promise chains used to avoid async/await transpilation issues
         const images = await page.evaluate((pdfData: string) => {
             return new Promise((resolve, reject) => {
                 try {
@@ -89,8 +91,11 @@ export const pdfToImageHandler = async (req: Request, res: Response) => {
 
     } catch (error) {
         console.error('PDF to Image error:', error);
-        res.status(500).json({ error: 'Conversion failed', details: (error as Error).message });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Conversion failed', details: (error as Error).message });
+        }
     } finally {
-        await browser.close();
+        // Close the page but keep the shared browser alive.
+        await page.close();
     }
 };

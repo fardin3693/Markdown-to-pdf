@@ -7,6 +7,8 @@ import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, UploadCloud, FileText, Scissors, Layers, Plus, Merge, FileOutput, Settings, X } from 'lucide-react';
+import UploadProgressCard from '@/components/upload/UploadProgressCard';
+import { readFileAsArrayBufferWithProgress, uploadBlobWithProgress, type TransferPhase, type UploadBlobWithProgressRequest } from '@/lib/upload';
 
 const SortableRangeItem = dynamic(() => import('@/components/split-pdf/SortableRangeItem'), { ssr: false });
 const PdfPageThumbnail = dynamic(() => import('@/components/split-pdf/PdfPageThumbnail'), { ssr: false });
@@ -81,11 +83,37 @@ export default function SplitPdfPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isDraggingOnWindow, setIsDraggingOnWindow] = useState(false);
     const [isLoadingPages, setIsLoadingPages] = useState(false);
+    const [fileLoadProgress, setFileLoadProgress] = useState(0);
+    const [fileLoadPhase, setFileLoadPhase] = useState<TransferPhase>('idle');
+    const [preparingFileName, setPreparingFileName] = useState<string>('');
+    const [actionUploadProgress, setActionUploadProgress] = useState(0);
+    const [actionTransferPhase, setActionTransferPhase] = useState<TransferPhase>('idle');
+    const [actionError, setActionError] = useState<string | undefined>(undefined);
     const [mergeRanges, setMergeRanges] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
     const [lastClickedPage, setLastClickedPage] = useState<number | null>(null);
     const [currentRangeIndex, setCurrentRangeIndex] = useState<number>(0);
+    const [activeRequest, setActiveRequest] = useState<UploadBlobWithProgressRequest | null>(null);
+
+    const beginProcessingAction = () => {
+        setIsProcessing(true);
+        setActionUploadProgress(0);
+        setActionTransferPhase('uploading');
+        setActionError(undefined);
+    };
+
+    const handleActionFailure = (error: unknown) => {
+        console.error(error);
+        const message = error instanceof Error ? error.message : 'Failed to split PDF.';
+        if (message === 'Upload aborted.') {
+            setActionTransferPhase('cancelled');
+        } else {
+            setActionTransferPhase('error');
+            setActionError(message);
+            alert(message);
+        }
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -129,11 +157,15 @@ export default function SplitPdfPage() {
     }, []);
 
     const handleFileSelect = async (selectedFile: File) => {
+        setPreparingFileName(selectedFile.name);
+        setFileLoadProgress(0);
+        setFileLoadPhase('uploading');
         setFile(selectedFile);
         setIsLoadingPages(true);
         
         try {
-            const arrayBuffer = await selectedFile.arrayBuffer();
+            const arrayBuffer = await readFileAsArrayBufferWithProgress(selectedFile, setFileLoadProgress);
+            setFileLoadPhase('processing');
             const { pdfjs } = await import('react-pdf');
             pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
             const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
@@ -141,8 +173,11 @@ export default function SplitPdfPage() {
             const pageCount = pdf.numPages;
             setTotalPages(pageCount);
             setRanges([{ id: generateId(), from: 1, to: pageCount }]);
+            setFileLoadProgress(100);
+            setFileLoadPhase('done');
         } catch (error) {
             console.error('Error reading PDF:', error);
+            setFileLoadPhase('error');
             alert('Failed to read PDF file.');
         } finally {
             setIsLoadingPages(false);
@@ -284,24 +319,21 @@ export default function SplitPdfPage() {
             return;
         }
 
-        setIsProcessing(true);
+        beginProcessingAction();
         const formData = new FormData();
         formData.append('file', file);
         formData.append('ranges', JSON.stringify(ranges.map(r => ({ from: r.from, to: r.to }))));
         formData.append('mergeRanges', String(mergeRanges));
 
         try {
-            const response = await fetch('/api/tools/split-pdf/custom-ranges', {
-                method: 'POST',
-                body: formData,
+            const request = uploadBlobWithProgress({
+                url: '/api/tools/split-pdf/custom-ranges',
+                formData,
+                onProgress: setActionUploadProgress,
+                onPhaseChange: (phase) => setActionTransferPhase(phase === 'done' ? 'processing' : phase)
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.details || errorData.error || 'Split failed');
-            }
-
-            const blob = await response.blob();
+            setActiveRequest(request);
+            const { blob } = await request;
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -310,10 +342,12 @@ export default function SplitPdfPage() {
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
+            setActionUploadProgress(100);
+            setActionTransferPhase('done');
         } catch (error) {
-            console.error(error);
-            alert(error instanceof Error ? error.message : 'Failed to split PDF.');
+            handleActionFailure(error);
         } finally {
+            setActiveRequest(null);
             setIsProcessing(false);
         }
     };
@@ -331,23 +365,20 @@ export default function SplitPdfPage() {
             return;
         }
 
-        setIsProcessing(true);
+        beginProcessingAction();
         const formData = new FormData();
         formData.append('file', file);
         formData.append('pagesPerFile', pagesPerFile);
 
         try {
-            const response = await fetch('/api/tools/split-pdf/fixed-range', {
-                method: 'POST',
-                body: formData,
+            const request = uploadBlobWithProgress({
+                url: '/api/tools/split-pdf/fixed-range',
+                formData,
+                onProgress: setActionUploadProgress,
+                onPhaseChange: (phase) => setActionTransferPhase(phase === 'done' ? 'processing' : phase)
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.details || errorData.error || 'Split failed');
-            }
-
-            const blob = await response.blob();
+            setActiveRequest(request);
+            const { blob } = await request;
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -356,10 +387,12 @@ export default function SplitPdfPage() {
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
+            setActionUploadProgress(100);
+            setActionTransferPhase('done');
         } catch (error) {
-            console.error(error);
-            alert(error instanceof Error ? error.message : 'Failed to split PDF.');
+            handleActionFailure(error);
         } finally {
+            setActiveRequest(null);
             setIsProcessing(false);
         }
     };
@@ -382,23 +415,20 @@ export default function SplitPdfPage() {
             return;
         }
 
-        setIsProcessing(true);
+        beginProcessingAction();
         const formData = new FormData();
         formData.append('file', file);
         formData.append('pages', pageNumbers);
 
         try {
-            const response = await fetch('/api/tools/split-pdf/pages', {
-                method: 'POST',
-                body: formData,
+            const request = uploadBlobWithProgress({
+                url: '/api/tools/split-pdf/pages',
+                formData,
+                onProgress: setActionUploadProgress,
+                onPhaseChange: (phase) => setActionTransferPhase(phase === 'done' ? 'processing' : phase)
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.details || errorData.error || 'Split failed');
-            }
-
-            const blob = await response.blob();
+            setActiveRequest(request);
+            const { blob } = await request;
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -407,32 +437,31 @@ export default function SplitPdfPage() {
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
+            setActionUploadProgress(100);
+            setActionTransferPhase('done');
         } catch (error) {
-            console.error(error);
-            alert(error instanceof Error ? error.message : 'Failed to split PDF.');
+            handleActionFailure(error);
         } finally {
+            setActiveRequest(null);
             setIsProcessing(false);
         }
     };
 
     const handleSplitAll = async () => {
         if (!file) return;
-        setIsProcessing(true);
+        beginProcessingAction();
         const formData = new FormData();
         formData.append('file', file);
 
         try {
-            const response = await fetch('/api/tools/split-pdf/all', {
-                method: 'POST',
-                body: formData,
+            const request = uploadBlobWithProgress({
+                url: '/api/tools/split-pdf/all',
+                formData,
+                onProgress: setActionUploadProgress,
+                onPhaseChange: (phase) => setActionTransferPhase(phase === 'done' ? 'processing' : phase)
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.details || errorData.error || 'Split failed');
-            }
-
-            const blob = await response.blob();
+            setActiveRequest(request);
+            const { blob } = await request;
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -441,10 +470,12 @@ export default function SplitPdfPage() {
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
+            setActionUploadProgress(100);
+            setActionTransferPhase('done');
         } catch (error) {
-            console.error(error);
-            alert(error instanceof Error ? error.message : 'Failed to split PDF.');
+            handleActionFailure(error);
         } finally {
+            setActiveRequest(null);
             setIsProcessing(false);
         }
     };
@@ -552,9 +583,14 @@ export default function SplitPdfPage() {
                             </label>
                         </div>
                     ) : isLoadingPages ? (
-                        <div className="h-full flex items-center justify-center">
-                            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                            <span className="ml-3 text-slate-600">Loading PDF...</span>
+                        <div className="h-full flex items-center justify-center px-4">
+                            <UploadProgressCard
+                                className="w-full max-w-xl"
+                                fileName={preparingFileName || file.name}
+                                fileSizeLabel={`${(file.size / 1024 / 1024).toFixed(2)} MB`}
+                                progress={fileLoadProgress}
+                                phase={fileLoadPhase}
+                            />
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
@@ -625,6 +661,18 @@ export default function SplitPdfPage() {
                     </div>
                     
                     <div className="p-3 sm:p-4 border-b border-slate-200">
+                        {file && isProcessing && (
+                            <UploadProgressCard
+                                className="mb-3"
+                                fileName={file.name}
+                                fileSizeLabel={`${(file.size / 1024 / 1024).toFixed(2)} MB`}
+                                progress={actionUploadProgress}
+                                phase={actionTransferPhase}
+                                error={actionError}
+                                canCancel={isProcessing}
+                                onCancel={() => activeRequest?.abort()}
+                            />
+                        )}
                         {/* Mode Selection */}
                         <div className="flex gap-2 mb-3">
                             <button 

@@ -6,11 +6,15 @@ import { Upload, FileText, ArrowRight, Download, RefreshCw, Trash2, DownloadClou
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
 import { v4 as uuidv4 } from 'uuid';
 import JSZip from 'jszip';
+import UploadProgressCard from '@/components/upload/UploadProgressCard';
+import { uploadBlobWithProgress, type TransferPhase } from '@/lib/upload';
 
 interface FileQueueItem {
     id: string;
     file: File;
     status: 'idle' | 'converting' | 'done' | 'error';
+    uploadProgress: number;
+    transferPhase: TransferPhase;
     result?: {
         url: string;
         filename: string;
@@ -26,7 +30,9 @@ export default function ExcelToPdfPage() {
         const newItems: FileQueueItem[] = acceptedFiles.map(file => ({
             id: uuidv4(),
             file,
-            status: 'idle'
+            status: 'idle',
+            uploadProgress: 0,
+            transferPhase: 'idle'
         }));
         setQueue(prev => [...prev, ...newItems]);
     };
@@ -58,23 +64,25 @@ export default function ExcelToPdfPage() {
     };
 
     const convertItem = async (item: FileQueueItem) => {
-        updateItem(item.id, { status: 'converting', error: undefined });
+        updateItem(item.id, {
+            status: 'converting',
+            error: undefined,
+            uploadProgress: 0,
+            transferPhase: 'uploading'
+        });
 
         const formData = new FormData();
         formData.append('file', item.file);
 
         try {
-            const response = await fetch('/api/tools/excel-to-pdf/convert', {
-                method: 'POST',
-                body: formData,
+            const { blob } = await uploadBlobWithProgress({
+                url: '/api/tools/excel-to-pdf/convert',
+                formData,
+                onProgress: (progress) => updateItem(item.id, { uploadProgress: progress }),
+                onPhaseChange: (phase) => updateItem(item.id, {
+                    transferPhase: phase === 'done' ? 'processing' : phase
+                })
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Conversion failed');
-            }
-
-            const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const originalName = item.file.name;
             const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.'));
@@ -82,6 +90,8 @@ export default function ExcelToPdfPage() {
 
             updateItem(item.id, {
                 status: 'done',
+                uploadProgress: 100,
+                transferPhase: 'done',
                 result: {
                     url,
                     filename
@@ -90,7 +100,11 @@ export default function ExcelToPdfPage() {
 
         } catch (err) {
             console.error(err);
-            updateItem(item.id, { status: 'error', error: (err as Error).message });
+            updateItem(item.id, {
+                status: 'error',
+                transferPhase: 'error',
+                error: (err as Error).message
+            });
         }
     };
 
@@ -197,9 +211,13 @@ export default function ExcelToPdfPage() {
 
                                 <div className="w-full flex justify-end">
                                     {item.status === 'converting' && (
-                                        <div className="flex items-center text-green-600 font-medium px-4">
-                                            <RefreshCw className="w-5 h-5 animate-spin mr-2" />
-                                            Converting...
+                                        <div className="w-full">
+                                            <UploadProgressCard
+                                                fileName={item.file.name}
+                                                fileSizeLabel={formatBytes(item.file.size)}
+                                                progress={item.uploadProgress}
+                                                phase={item.transferPhase}
+                                            />
                                         </div>
                                     )}
 

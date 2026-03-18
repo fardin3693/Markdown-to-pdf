@@ -8,6 +8,8 @@ const nunito = Nunito({
     subsets: ["latin"],
     variable: "--font-nunito",
     display: "swap",
+    preload: true,
+    fallback: ["system-ui", "sans-serif"],
 });
 
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, "");

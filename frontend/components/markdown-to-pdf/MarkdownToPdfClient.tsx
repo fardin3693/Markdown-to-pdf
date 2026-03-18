@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import MarkdownEditor, { MarkdownEditorRef } from '@/components/markdown-to-pdf/MarkdownEditor';
 import MarkdownPreview, { MarkdownPreviewRef } from '@/components/markdown-to-pdf/MarkdownPreview';
 import EditorToolbar from '@/components/markdown-to-pdf/EditorToolbar';
@@ -9,8 +8,9 @@ import ExportPanel from '@/components/markdown-to-pdf/ExportPanel';
 import PDFOptionsModal from '@/components/markdown-to-pdf/PDFOptionsModal';
 import FindReplaceBar from '@/components/markdown-to-pdf/FindReplaceBar';
 import { Button } from '@/components/ui/button';
-import { PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Upload, GripVertical, ArrowLeft } from 'lucide-react';
-import ToolPageHeader from '@/components/layout/ToolPageHeader';
+import UploadProgressCard from '@/components/upload/UploadProgressCard';
+import { uploadBlobWithProgress, isUploadAbortError, type TransferPhase, type UploadBlobWithProgressRequest } from '@/lib/upload';
+import { PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Upload, GripVertical } from 'lucide-react';
 
 const SAMPLE_MARKDOWN = `# Markdown to PDF
 
@@ -45,8 +45,11 @@ export default function MarkdownToPdfClient() {
     // Core state
     const [markdown, setMarkdown] = useState<string>(SAMPLE_MARKDOWN);
     const [isConverting, setIsConverting] = useState<boolean>(false);
+    const [conversionProgress, setConversionProgress] = useState<number>(0);
+    const [conversionPhase, setConversionPhase] = useState<TransferPhase>('idle');
+    const [conversionError, setConversionError] = useState<string | undefined>(undefined);
+    const [activeExportLabel, setActiveExportLabel] = useState<'pdf' | 'html' | null>(null);
     const [isMobile, setIsMobile] = useState<boolean>(false);
-    const router = useRouter();
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -93,6 +96,8 @@ export default function MarkdownToPdfClient() {
     const previewRef = useRef<MarkdownPreviewRef>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const resizeRef = useRef<HTMLDivElement>(null);
+    const activeRequestRef = useRef<UploadBlobWithProgressRequest | null>(null);
+    const resetExportStatusTimeoutRef = useRef<number | null>(null);
 
     // Scroll sync handler
     const handleEditorScroll = useCallback((scrollPercentage: number) => {
@@ -194,65 +199,84 @@ export default function MarkdownToPdfClient() {
     }, [searchTerm, replaceTerm, markdown, matchCount, handleMarkdownChange]);
 
     // Export handlers
-    const handleExportHTML = useCallback(async () => {
+    const buildMarkdownPayload = useCallback((format?: 'html') => JSON.stringify({
+        markdown,
+        ...(format ? { format } : {}),
+        ...(!format ? { options: pdfOptions } : {}),
+    }), [markdown, pdfOptions]);
+
+    const cancelActiveExport = useCallback(() => {
+        activeRequestRef.current?.abort();
+    }, []);
+
+    const runExport = useCallback(async (type: 'pdf' | 'html') => {
         setIsConverting(true);
-        try {
-            const response = await fetch('/api/convert', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ markdown, format: 'html' }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.details || errorData.error || 'Conversion failed');
-            }
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'document.html';
-            a.click();
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Error exporting HTML:', error);
-            alert('Frontend not ready yet! HTML export requires the backend server.');
-        } finally {
-            setIsConverting(false);
+        if (resetExportStatusTimeoutRef.current) {
+            window.clearTimeout(resetExportStatusTimeoutRef.current);
+            resetExportStatusTimeoutRef.current = null;
         }
-    }, [markdown]);
+        setConversionProgress(0);
+        setConversionPhase('uploading');
+        setConversionError(undefined);
+        setActiveExportLabel(type);
 
-    const handleExportPDF = useCallback(async () => {
-        setIsConverting(true);
         try {
-            const response = await fetch('/api/convert', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ markdown, options: pdfOptions }),
+            const request = uploadBlobWithProgress({
+                url: '/api/convert',
+                body: buildMarkdownPayload(type === 'html' ? 'html' : undefined),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                onProgress: setConversionProgress,
+                onPhaseChange: (phase) => setConversionPhase(phase === 'done' ? 'processing' : phase),
             });
+            activeRequestRef.current = request;
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.details || errorData.error || 'Conversion failed');
-            }
+            const { blob } = await request;
+            const fileName = type === 'html' ? 'document.html' : 'document.pdf';
+            const mimeType = type === 'html' ? 'text/html' : 'application/pdf';
+            const outputBlob = new Blob([blob], { type: mimeType });
+            const url = window.URL.createObjectURL(outputBlob);
 
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'document.pdf';
+            link.download = fileName;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
+            setConversionProgress(100);
+            setConversionPhase('done');
         } catch (error) {
-            console.error('Error converting to PDF:', error);
-            alert('Backend not ready yet! PDF conversion requires the backend server.');
+            console.error(`Error exporting ${type.toUpperCase()}:`, error);
+            if (isUploadAbortError(error)) {
+                setConversionPhase('cancelled');
+                return;
+            }
+
+            const message = error instanceof Error ? error.message : 'Conversion failed';
+            setConversionPhase('error');
+            setConversionError(message);
         } finally {
+            activeRequestRef.current = null;
             setIsConverting(false);
+            resetExportStatusTimeoutRef.current = window.setTimeout(() => {
+                setActiveExportLabel(null);
+                setConversionError(undefined);
+                setConversionProgress(0);
+                setConversionPhase('idle');
+                resetExportStatusTimeoutRef.current = null;
+            }, 2000);
         }
-    }, [markdown, pdfOptions]);
+    }, [buildMarkdownPayload]);
+
+    const handleExportHTML = useCallback(async () => {
+        await runExport('html');
+    }, [runExport]);
+
+    const handleExportPDF = useCallback(async () => {
+        await runExport('pdf');
+    }, [runExport]);
 
     const [isDraggingFile, setIsDraggingFile] = useState<boolean>(false);
 
@@ -319,6 +343,15 @@ export default function MarkdownToPdfClient() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleUndo, handleRedo]);
+
+    useEffect(() => {
+        return () => {
+            activeRequestRef.current?.abort();
+            if (resetExportStatusTimeoutRef.current) {
+                window.clearTimeout(resetExportStatusTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // Mouse drag resize handler
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -424,10 +457,28 @@ export default function MarkdownToPdfClient() {
                             onExportPDF={handleExportPDF}
                             onOpenPDFOptions={() => setShowPDFOptions(true)}
                             isConverting={isConverting}
+                            onCancel={cancelActiveExport}
                         />
                     </div>
                 </div>
             </header>
+
+            {(isConverting || conversionPhase === 'error' || conversionPhase === 'cancelled' || conversionPhase === 'done') && activeExportLabel ? (
+                <div className="border-b border-slate-200 bg-white/90 px-4 py-3">
+                    <div className="mx-auto max-w-screen-2xl">
+                        <UploadProgressCard
+                            className="border-slate-200 shadow-sm shadow-slate-200/60"
+                            fileName={activeExportLabel === 'pdf' ? 'Markdown document.pdf' : 'Markdown document.html'}
+                            fileSizeLabel={`${markdown.length.toLocaleString()} characters of source content`}
+                            progress={conversionProgress}
+                            phase={conversionPhase}
+                            error={conversionError}
+                            canCancel={isConverting}
+                            onCancel={cancelActiveExport}
+                        />
+                    </div>
+                </div>
+            ) : null}
 
             {/* Toolbar */}
             <div className="flex-none">

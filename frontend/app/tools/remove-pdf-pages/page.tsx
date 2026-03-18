@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, UploadCloud, FileText, Trash2, X, Settings } from 'lucide-react';
+import UploadProgressCard from '@/components/upload/UploadProgressCard';
+import { readFileAsArrayBufferWithProgress, uploadBlobWithProgress, type TransferPhase, type UploadBlobWithProgressRequest } from '@/lib/upload';
 
 const PdfPageThumbnail = dynamic(() => import('@/components/split-pdf/PdfPageThumbnail'), { ssr: false });
 
@@ -52,7 +54,14 @@ export default function RemovePdfPagesPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isDraggingOnWindow, setIsDraggingOnWindow] = useState(false);
     const [isLoadingPages, setIsLoadingPages] = useState(false);
+    const [fileLoadProgress, setFileLoadProgress] = useState(0);
+    const [fileLoadPhase, setFileLoadPhase] = useState<TransferPhase>('idle');
+    const [preparingFileName, setPreparingFileName] = useState('');
+    const [actionUploadProgress, setActionUploadProgress] = useState(0);
+    const [actionTransferPhase, setActionTransferPhase] = useState<TransferPhase>('idle');
+    const [actionError, setActionError] = useState<string | undefined>(undefined);
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [activeRequest, setActiveRequest] = useState<UploadBlobWithProgressRequest | null>(null);
 
     useEffect(() => {
         const handleWindowDragOver = (e: DragEvent) => {
@@ -91,11 +100,15 @@ export default function RemovePdfPagesPage() {
     }, []);
 
     const handleFileSelect = async (selectedFile: File) => {
+        setPreparingFileName(selectedFile.name);
+        setFileLoadProgress(0);
+        setFileLoadPhase('uploading');
         setFile(selectedFile);
         setIsLoadingPages(true);
         
         try {
-            const arrayBuffer = await selectedFile.arrayBuffer();
+            const arrayBuffer = await readFileAsArrayBufferWithProgress(selectedFile, setFileLoadProgress);
+            setFileLoadPhase('processing');
             const { pdfjs } = await import('react-pdf');
             pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
             const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
@@ -103,8 +116,11 @@ export default function RemovePdfPagesPage() {
             setTotalPages(pdf.numPages);
             setPagesToRemove(new Set());
             setPageNumbers('');
+            setFileLoadProgress(100);
+            setFileLoadPhase('done');
         } catch (error) {
             console.error('Error reading PDF:', error);
+            setFileLoadPhase('error');
             alert('Failed to read PDF file.');
         } finally {
             setIsLoadingPages(false);
@@ -193,22 +209,22 @@ export default function RemovePdfPagesPage() {
         }
 
         setIsProcessing(true);
+        setActionUploadProgress(0);
+        setActionTransferPhase('uploading');
+        setActionError(undefined);
         const formData = new FormData();
         formData.append('file', file);
         formData.append('pages', pageNumbers);
 
         try {
-            const response = await fetch('/api/tools/remove-pdf-pages/remove-pages', {
-                method: 'POST',
-                body: formData,
+            const request = uploadBlobWithProgress({
+                url: '/api/tools/remove-pdf-pages/remove-pages',
+                formData,
+                onProgress: setActionUploadProgress,
+                onPhaseChange: (phase) => setActionTransferPhase(phase === 'done' ? 'processing' : phase)
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.details || errorData.error || 'Remove pages failed');
-            }
-
-            const blob = await response.blob();
+            setActiveRequest(request);
+            const { blob } = await request;
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -217,10 +233,20 @@ export default function RemovePdfPagesPage() {
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
+            setActionUploadProgress(100);
+            setActionTransferPhase('done');
         } catch (error) {
             console.error(error);
-            alert(error instanceof Error ? error.message : 'Failed to remove pages.');
+            const message = error instanceof Error ? error.message : 'Failed to remove pages.';
+            if (message === 'Upload aborted.') {
+                setActionTransferPhase('cancelled');
+            } else {
+                setActionTransferPhase('error');
+                setActionError(message);
+                alert(message);
+            }
         } finally {
+            setActiveRequest(null);
             setIsProcessing(false);
         }
     };
@@ -291,9 +317,14 @@ export default function RemovePdfPagesPage() {
                             </label>
                         </div>
                     ) : isLoadingPages ? (
-                        <div className="h-full flex items-center justify-center">
-                            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                            <span className="ml-3 text-slate-600">Loading PDF...</span>
+                        <div className="h-full flex items-center justify-center px-4">
+                            <UploadProgressCard
+                                className="w-full max-w-xl"
+                                fileName={preparingFileName || file.name}
+                                fileSizeLabel={`${(file.size / 1024 / 1024).toFixed(2)} MB`}
+                                progress={fileLoadProgress}
+                                phase={fileLoadPhase}
+                            />
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
@@ -353,6 +384,18 @@ export default function RemovePdfPagesPage() {
                     </div>
                     
                     <div className="p-3 sm:p-4 border-b border-slate-200">
+                        {file && isProcessing && (
+                            <UploadProgressCard
+                                className="mb-3"
+                                fileName={file.name}
+                                fileSizeLabel={`${(file.size / 1024 / 1024).toFixed(2)} MB`}
+                                progress={actionUploadProgress}
+                                phase={actionTransferPhase}
+                                error={actionError}
+                                canCancel={isProcessing}
+                                onCancel={() => activeRequest?.abort()}
+                            />
+                        )}
                         <Button
                             size="lg"
                             className="w-full font-bold shadow-lg shadow-red-500/20 bg-red-500 hover:bg-red-600"

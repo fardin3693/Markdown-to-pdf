@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileText, ArrowRight, Download, RefreshCw, Trash2, Image as ImageIcon } from "lucide-react";
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
@@ -9,13 +9,17 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, X } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
+import UploadProgressCard from '@/components/upload/UploadProgressCard';
+import { uploadBlobWithProgress, type TransferPhase, type UploadBlobWithProgressRequest } from '@/lib/upload';
 
 interface ImageItem {
   id: string;
   file: File;
   preview: string;
   status: 'idle' | 'converting' | 'done' | 'error';
+  uploadProgress: number;
+  transferPhase: TransferPhase;
   error?: string;
 }
 
@@ -84,6 +88,9 @@ export default function ImageToPdfPage() {
   const [queue, setQueue] = useState<ImageItem[]>([]);
   const [isConverting, setIsConverting] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | undefined>(undefined);
+  const [activeRequest, setActiveRequest] = useState<UploadBlobWithProgressRequest | null>(null);
+  const totalUploadSize = queue.reduce((sum, item) => sum + item.file.size, 0);
 
   // DnD sensors
   const sensors = useSensors(
@@ -98,7 +105,9 @@ export default function ImageToPdfPage() {
       id: uuidv4(),
       file,
       preview: URL.createObjectURL(file),
-      status: 'idle'
+      status: 'idle',
+      uploadProgress: 0,
+      transferPhase: 'idle'
     }));
     setQueue(prev => [...prev, ...newItems]);
   };
@@ -133,6 +142,14 @@ export default function ImageToPdfPage() {
     if (queue.length === 0) return;
     setIsConverting(true);
     setPdfUrl(null);
+    setUploadError(undefined);
+    setQueue(prev => prev.map(item => ({
+      ...item,
+      status: 'converting',
+      uploadProgress: 0,
+      transferPhase: 'uploading',
+      error: undefined
+    })));
 
     const formData = new FormData();
     queue.forEach(item => {
@@ -140,22 +157,41 @@ export default function ImageToPdfPage() {
     });
 
     try {
-      const response = await fetch('/api/tools/image-to-pdf/convert', {
-        method: 'POST',
-        body: formData,
+      const request = uploadBlobWithProgress({
+        url: '/api/tools/image-to-pdf/convert',
+        formData,
+        onProgress: (progress) => setQueue(prev => prev.map(item => ({ ...item, uploadProgress: progress }))),
+        onPhaseChange: (phase) => setQueue(prev => prev.map(item => ({
+          ...item,
+          transferPhase: phase === 'done' ? 'processing' : phase
+        })))
       });
-
-      if (!response.ok) throw new Error('Conversion failed');
-
-      const blob = await response.blob();
+      setActiveRequest(request);
+      const { blob } = await request;
       const url = window.URL.createObjectURL(blob);
       setPdfUrl(url);
-      setQueue(prev => prev.map(item => ({ ...item, status: 'done' })));
+      setQueue(prev => prev.map(item => ({
+        ...item,
+        status: 'done',
+        uploadProgress: 100,
+        transferPhase: 'done'
+      })));
 
     } catch (error) {
       console.error(error);
-      alert('Failed to convert images to PDF');
+      const message = error instanceof Error ? error.message : 'Failed to convert images to PDF';
+      setQueue(prev => prev.map(item => ({
+        ...item,
+        status: 'error',
+        transferPhase: message === 'Upload aborted.' ? 'cancelled' : 'error',
+        error: message === 'Upload aborted.' ? 'Upload cancelled.' : message
+      })));
+      if (message !== 'Upload aborted.') {
+        setUploadError(message);
+        alert(message);
+      }
     } finally {
+      setActiveRequest(null);
       setIsConverting(false);
     }
   };
@@ -193,6 +229,9 @@ export default function ImageToPdfPage() {
                 <h3 className={`font-bold text-slate-900 ${queue.length > 0 ? 'text-lg' : 'text-xl'}`}>
                   {queue.length > 0 ? 'Add more Images' : 'Drop your Images here'}
                 </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Large uploads will show live progress before conversion starts.
+                </p>
               </div>
             </div>
           </div>
@@ -206,6 +245,19 @@ export default function ImageToPdfPage() {
                 {queue.length} Image{queue.length !== 1 ? 's' : ''} • Drag to reorder pages
               </h2>
             </div>
+
+            {isConverting && queue.length > 0 && (
+              <UploadProgressCard
+                className="mb-4"
+                fileName={`${queue.length} image${queue.length !== 1 ? 's' : ''} ready for PDF`}
+                fileSizeLabel={totalUploadSize > 0 ? formatBytes(totalUploadSize) : undefined}
+                progress={queue[0]?.uploadProgress ?? 0}
+                phase={queue[0]?.transferPhase ?? 'idle'}
+                error={uploadError}
+                canCancel={isConverting}
+                onCancel={() => activeRequest?.abort()}
+              />
+            )}
             
             <DndContext
               sensors={sensors}

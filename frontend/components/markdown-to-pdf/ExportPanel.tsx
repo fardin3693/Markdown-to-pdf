@@ -14,6 +14,7 @@ interface ExportPanelProps {
     onExportPDF: () => void;
     onOpenPDFOptions: () => void;
     isConverting: boolean;
+    onCancel?: () => void;
 }
 
 export default function ExportPanel({
@@ -21,6 +22,7 @@ export default function ExportPanel({
     onExportPDF,
     onOpenPDFOptions,
     isConverting,
+    onCancel,
 }: ExportPanelProps) {
     const [showDropdown, setShowDropdown] = useState(false);
 
@@ -41,6 +43,18 @@ export default function ExportPanel({
                     </>
                 )}
             </Button>
+
+            {isConverting && onCancel ? (
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={onCancel}
+                    className="h-9 border-red-200 px-3 text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                    Cancel
+                </Button>
+            ) : null}
 
             {/* Export Dropdown */}
             <div className="relative">

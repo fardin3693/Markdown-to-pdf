@@ -7,39 +7,24 @@ const execAsync = promisify(exec);
 
 const PYTHON_PATH = process.env.PYTHON_PATH || 'C:\\Users\\fardi\\AppData\\Local\\Programs\\Python\\Python314\\python.exe';
 
+// Persistent script – written once at deploy time, never recreated per-request.
+const SCRIPT_PATH = path.join(__dirname, '../../scripts/convert_pdf_to_word.py');
+
 export const convertPdfToWord = async (inputPath: string, outputPath: string): Promise<void> => {
-    const script = `
-import sys
-from pdf2docx import Converter
-
-input_path = sys.argv[1]
-output_path = sys.argv[2]
-
-cv = Converter(input_path)
-cv.convert(output_path)
-cv.close()
-`;
-
-    const tempScript = path.join(path.dirname(outputPath), 'convert_pdf_to_word.py');
-    
     try {
-        await fs.writeFile(tempScript, script);
-        
-        const { stdout, stderr } = await execAsync(`"${PYTHON_PATH}" "${tempScript}" "${inputPath}" "${outputPath}"`);
-        
+        const { stdout, stderr } = await execAsync(
+            `"${PYTHON_PATH}" "${SCRIPT_PATH}" "${inputPath}" "${outputPath}"`
+        );
+
         if (stderr && !stderr.includes('WARNING')) {
             console.error('Python stderr:', stderr);
         }
-        
+
         if (!await fs.pathExists(outputPath)) {
             throw new Error(`DOCX was not created. Python output: ${stderr || stdout}`);
         }
     } catch (error: any) {
         console.error('PDF to Word conversion error:', error);
         throw new Error(`Conversion failed: ${error.message}`);
-    } finally {
-        try {
-            await fs.unlink(tempScript);
-        } catch {}
     }
 };

@@ -42,8 +42,9 @@ export const convertToHtml = async (markdown: string, options: any = {}): Promis
         .use(rehypeDocument, {
             title: 'Markdown to PDF',
             css: [
-                'https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown.min.css',
-                'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css',
+                // Served locally – no external CDN dependency during Puppeteer rendering.
+                `http://localhost:${process.env.PORT || 3001}/assets/github-markdown.min.css`,
+                `http://localhost:${process.env.PORT || 3001}/assets/katex.min.css`,
             ],
             style: `
                 body {

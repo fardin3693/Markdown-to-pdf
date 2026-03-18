@@ -91,6 +91,8 @@ const MarkdownPreview = forwardRef<MarkdownPreviewRef, MarkdownPreviewProps>(
                                             <img
                                                 src={src || undefined}
                                                 alt={alt || 'Image'}
+                                                loading="lazy"
+                                                decoding="async"
                                                 className="max-w-full h-auto rounded-lg shadow-sm"
                                                 onError={(e) => {
                                                     const target = e.target as HTMLImageElement;

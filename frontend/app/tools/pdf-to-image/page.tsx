@@ -4,11 +4,17 @@ import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileText, ArrowRight, Download, RefreshCw, Image as ImageIcon } from "lucide-react";
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
+import UploadProgressCard from '@/components/upload/UploadProgressCard';
+import { uploadBlobWithProgress, type TransferPhase, type UploadBlobWithProgressRequest } from '@/lib/upload';
 
 export default function PdfToImagePage() {
     const [file, setFile] = useState<File | null>(null);
     const [isConverting, setIsConverting] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [transferPhase, setTransferPhase] = useState<TransferPhase>('idle');
+    const [uploadError, setUploadError] = useState<string | undefined>(undefined);
+    const [activeRequest, setActiveRequest] = useState<UploadBlobWithProgressRequest | null>(null);
 
     const onDrop = (acceptedFiles: File[]) => {
         if (acceptedFiles.length > 0) {
@@ -33,26 +39,39 @@ export default function PdfToImagePage() {
     const handleConvert = async () => {
         if (!file) return;
         setIsConverting(true);
+        setUploadProgress(0);
+        setTransferPhase('uploading');
+        setUploadError(undefined);
 
         const formData = new FormData();
         formData.append('file', file);
 
         try {
-            const response = await fetch('/api/tools/pdf-to-image/convert', {
-                method: 'POST',
-                body: formData,
+            const request = uploadBlobWithProgress({
+                url: '/api/tools/pdf-to-image/convert',
+                formData,
+                onProgress: setUploadProgress,
+                onPhaseChange: (phase) => setTransferPhase(phase === 'done' ? 'processing' : phase)
             });
-
-            if (!response.ok) throw new Error('Conversion failed');
-
-            const blob = await response.blob();
+            setActiveRequest(request);
+            const { blob } = await request;
             const url = window.URL.createObjectURL(blob);
             setDownloadUrl(url);
+            setUploadProgress(100);
+            setTransferPhase('done');
 
         } catch (error) {
             console.error(error);
-            alert('Failed to convert PDF to images');
+            if (error instanceof Error && error.message === 'Upload aborted.') {
+                setTransferPhase('cancelled');
+            } else {
+                const message = error instanceof Error ? error.message : 'Failed to convert PDF to images';
+                setTransferPhase('error');
+                setUploadError(message);
+                alert(message);
+            }
         } finally {
+            setActiveRequest(null);
             setIsConverting(false);
         }
     };
@@ -108,6 +127,19 @@ export default function PdfToImagePage() {
                             </div>
                         </div>
                     </div>
+                )}
+
+                {file && !downloadUrl && isConverting && (
+                    <UploadProgressCard
+                        className="mb-8 max-w-2xl mx-auto"
+                        fileName={file.name}
+                        fileSizeLabel={formatBytes(file.size)}
+                        progress={uploadProgress}
+                        phase={transferPhase}
+                        error={uploadError}
+                        canCancel={isConverting}
+                        onCancel={() => activeRequest?.abort()}
+                    />
                 )}
 
                 {/* Actions */}

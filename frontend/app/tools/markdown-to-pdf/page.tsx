@@ -1,5 +1,18 @@
 import type { Metadata } from 'next';
-import MarkdownToPdfClient from '@/components/markdown-to-pdf/MarkdownToPdfClient';
+import dynamic from 'next/dynamic';
+import { Loader2 } from 'lucide-react';
+
+const MarkdownToPdfClient = dynamic(() => import('@/components/markdown-to-pdf/MarkdownToPdfClient'), {
+    loading: () => (
+        <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-140px)]">
+            <div className="text-center">
+                <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-4" />
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Initializing Editor...</p>
+            </div>
+        </div>
+    ),
+    ssr: false
+});
 
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
 const markdownToPdfPath = '/tools/markdown-to-pdf';

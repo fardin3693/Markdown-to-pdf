@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, FileText, ArrowRight, Download, RefreshCw, CheckCircle2, AlertCircle, Settings, Minimize2, Trash2, X, DownloadCloud } from "lucide-react";
+import { Upload, FileText, ArrowRight, Download, RefreshCw, AlertCircle, Minimize2, Trash2, DownloadCloud } from "lucide-react";
 import { v4 as uuidv4 } from 'uuid';
 import JSZip from 'jszip';
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
+import UploadProgressCard from '@/components/upload/UploadProgressCard';
+import { uploadBlobWithProgress, type TransferPhase, type UploadBlobWithProgressRequest } from '@/lib/upload';
 
 type CompressionLevel = 'max' | 'standard' | 'low';
 
@@ -13,6 +15,8 @@ interface FileQueueItem {
     id: string;
     file: File;
     status: 'idle' | 'compressing' | 'done' | 'error';
+    uploadProgress: number;
+    transferPhase: TransferPhase;
     level: CompressionLevel;
     result?: {
         url: string;
@@ -22,6 +26,7 @@ interface FileQueueItem {
         wasCompressed: boolean;
     };
     error?: string;
+    request?: UploadBlobWithProgressRequest | null;
 }
 
 export default function CompressPdfPage() {
@@ -33,6 +38,8 @@ export default function CompressPdfPage() {
             id: uuidv4(),
             file,
             status: 'idle',
+            uploadProgress: 0,
+            transferPhase: 'idle',
             level: 'standard'
         }));
         setQueue(prev => [...prev, ...newItems]);
@@ -62,33 +69,40 @@ export default function CompressPdfPage() {
     };
 
     const compressItem = async (item: FileQueueItem) => {
-        updateItem(item.id, { status: 'compressing', error: undefined });
+        updateItem(item.id, {
+            status: 'compressing',
+            error: undefined,
+            uploadProgress: 0,
+            transferPhase: 'uploading'
+        });
 
         const formData = new FormData();
         formData.append('files', item.file);
         formData.append('compressionLevel', item.level);
 
         try {
-            const response = await fetch('/api/compress', {
-                method: 'POST',
-                body: formData,
+            const request = uploadBlobWithProgress({
+                url: '/api/compress',
+                formData,
+                onProgress: (progress) => updateItem(item.id, { uploadProgress: progress }),
+                onPhaseChange: (phase) => updateItem(item.id, {
+                    transferPhase: phase === 'done' ? 'processing' : phase
+                })
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Compression failed');
-            }
+            updateItem(item.id, { request });
+            const { blob, headers } = await request;
 
             // Get headers for size info
-            const originalSizeFromHeader = response.headers.get('X-Original-Size');
-            const compressedSizeFromHeader = response.headers.get('X-Compressed-Size');
-            const wasCompressedHeader = response.headers.get('X-Was-Compressed');
-
-            const blob = await response.blob();
+            const originalSizeFromHeader = headers['x-original-size'];
+            const compressedSizeFromHeader = headers['x-compressed-size'];
+            const wasCompressedHeader = headers['x-was-compressed'];
             const url = window.URL.createObjectURL(blob);
 
             updateItem(item.id, {
                 status: 'done',
+                uploadProgress: 100,
+                transferPhase: 'done',
+                request: null,
                 result: {
                     url,
                     filename: `compressed_${item.file.name}`,
@@ -100,7 +114,13 @@ export default function CompressPdfPage() {
 
         } catch (err) {
             console.error(err);
-            updateItem(item.id, { status: 'error', error: (err as Error).message });
+            const errorMessage = (err as Error).message;
+            updateItem(item.id, {
+                status: 'error',
+                transferPhase: errorMessage === 'Upload aborted.' ? 'cancelled' : 'error',
+                error: errorMessage === 'Upload aborted.' ? 'Upload cancelled.' : errorMessage,
+                request: null,
+            });
         }
     };
 
@@ -256,9 +276,16 @@ export default function CompressPdfPage() {
                                         )}
 
                                         {item.status === 'compressing' && (
-                                            <div className="flex items-center text-blue-600 font-medium px-4">
-                                                <RefreshCw className="w-5 h-5 animate-spin mr-2" />
-                                                Compressing...
+                                            <div className="w-full">
+                                                <UploadProgressCard
+                                                    fileName={item.file.name}
+                                                    fileSizeLabel={formatBytes(item.file.size)}
+                                                    progress={item.uploadProgress}
+                                                    phase={item.transferPhase}
+                                                    error={item.error}
+                                                    canCancel={item.status === 'compressing'}
+                                                    onCancel={() => item.request?.abort()}
+                                                />
                                             </div>
                                         )}
 

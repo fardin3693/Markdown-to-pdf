@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
   experimental: {
     proxyClientMaxBodySize: '500mb',
   },
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  compress: true,
+  poweredByHeader: false,
   turbopack: {
     root: __dirname,
   },
@@ -25,7 +30,7 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
     return [
       {
         source: '/api/:path*',

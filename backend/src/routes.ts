@@ -11,6 +11,7 @@ import pdfToPptRoutes from './tools/pdf-to-ppt/routes';
 import pdfToExcelRoutes from './tools/pdf-to-excel/routes';
 import pdfToWordRoutes from './tools/pdf-to-word/routes';
 import removePdfPagesRoutes from './tools/remove-pdf-pages/routes';
+import rotatePdfRoutes from './tools/rotate-pdf/routes';
 
 const router = Router();
 
@@ -27,6 +28,7 @@ router.use('/tools/pdf-to-ppt', pdfToPptRoutes);
 router.use('/tools/pdf-to-excel', pdfToExcelRoutes);
 router.use('/tools/pdf-to-word', pdfToWordRoutes);
 router.use('/tools/remove-pdf-pages', removePdfPagesRoutes);
+router.use('/tools/rotate-pdf', rotatePdfRoutes);
 
 // Legacy/Root mounts (if needed for API simplification)
 router.use('/', markdownToPdfRoutes); // Exposes /convert

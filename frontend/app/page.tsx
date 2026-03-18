@@ -1,344 +1,415 @@
 'use client';
 
 import Link from "next/link";
-import { useState } from "react";
-import { ArrowRight, FileText, Settings, Upload, Zap, Download, Layers, Minimize2, Image as ImageIcon, CheckCircle2, Star, Shield, Layout, Clock, Search, Menu, X, Trash2, Scissors } from "lucide-react";
+import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+    ArrowRight, 
+    FileText, 
+    Settings, 
+    Upload, 
+    Zap, 
+    Download, 
+    Layers, 
+    Minimize2, 
+    Image as ImageIcon, 
+    CheckCircle2, 
+    Star, 
+    Shield, 
+    Layout, 
+    Clock, 
+    Search, 
+    Trash2, 
+    Scissors,
+    Sparkles,
+    RotateCw
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const TOOLS = [
     {
+        id: 'markdown-to-pdf',
+        title: 'Markdown to PDF',
+        description: 'Convert your Markdown files to professional PDF documents with LaTeX support.',
+        href: '/tools/markdown-to-pdf',
+        icon: Sparkles,
+        color: 'text-amber-600',
+        bg: 'bg-amber-600/10',
+        border: 'border-amber-600/20',
+        active: true,
+    },
+    {
         id: 'compress-pdf',
         title: 'Compress PDF',
-        description: 'Reduce your PDF file size while maintaining quality.',
+        description: 'Reduce your PDF file size while maintaining maximum quality.',
         href: '/tools/compress-pdf',
         icon: Minimize2,
-        color: 'text-blue-600',
-        bg: 'bg-blue-50',
-        hoverBorder: 'hover:border-blue-400',
+        color: 'text-blue-500',
+        bg: 'bg-blue-500/10',
+        border: 'border-blue-500/20',
         active: true,
     },
     {
         id: 'merge-pdf',
         title: 'Merge PDF',
-        description: 'Combine multiple PDF documents into a single file.',
+        description: 'Combine multiple PDF documents into a single professional file.',
         href: '/tools/merge-pdf',
         icon: Layers,
-        color: 'text-emerald-600',
-        bg: 'bg-emerald-50',
-        hoverBorder: 'hover:border-emerald-400',
+        color: 'text-emerald-500',
+        bg: 'bg-emerald-500/10',
+        border: 'border-emerald-500/20',
         active: true,
     },
     {
         id: 'split-pdf',
         title: 'Split PDF',
-        description: 'Extract pages or split a PDF into multiple files.',
+        description: 'Extract pages or split a PDF into separate documents.',
         href: '/tools/split-pdf',
         icon: Scissors,
-        color: 'text-indigo-600',
-        bg: 'bg-indigo-50',
-        hoverBorder: 'hover:border-indigo-400',
+        color: 'text-indigo-500',
+        bg: 'bg-indigo-500/10',
+        border: 'border-indigo-500/20',
         active: true,
     },
     {
         id: 'doc-to-pdf',
         title: 'Word to PDF',
-        description: 'Convert DOC and DOCX documents to PDF.',
+        description: 'Convert DOC and DOCX documents to high-fidelity PDF.',
         href: '/tools/doc-to-pdf',
         icon: FileText,
-        color: 'text-slate-700',
-        bg: 'bg-slate-100',
-        hoverBorder: 'hover:border-slate-300',
+        color: 'text-sky-500',
+        bg: 'bg-sky-500/10',
+        border: 'border-sky-500/20',
         active: true,
     },
     {
         id: 'ppt-to-pdf',
         title: 'PowerPoint to PDF',
-        description: 'Convert your presentations to PDF format.',
+        description: 'Convert your presentations to PDF with perfect layout.',
         href: '/tools/ppt-to-pdf',
-        icon: FileText,
-        color: 'text-orange-600',
-        bg: 'bg-orange-50',
-        hoverBorder: 'hover:border-orange-400',
+        icon: ImageIcon,
+        color: 'text-orange-500',
+        bg: 'bg-orange-500/10',
+        border: 'border-orange-500/20',
         active: true,
     },
     {
         id: 'excel-to-pdf',
         title: 'Excel to PDF',
-        description: 'Convert Excel spreadsheets to high-quality PDFs.',
+        description: 'Convert spreadsheets to clean, readable PDF tables.',
         href: '/tools/excel-to-pdf',
         icon: FileText,
-        color: 'text-green-600',
-        bg: 'bg-green-50',
-        hoverBorder: 'hover:border-green-400',
+        color: 'text-green-500',
+        bg: 'bg-green-500/10',
+        border: 'border-green-500/20',
         active: true,
     },
     {
         id: 'pdf-to-word',
         title: 'PDF to Word',
-        description: 'Turn your PDFs into editable Word documents.',
+        description: 'Turn your PDFs back into editable Word documents.',
         href: '/tools/pdf-to-word',
         icon: FileText,
-        color: 'text-blue-700',
-        bg: 'bg-blue-50',
-        hoverBorder: 'hover:border-blue-500',
+        color: 'text-blue-600',
+        bg: 'bg-blue-600/10',
+        border: 'border-blue-600/20',
         active: true,
     },
     {
         id: 'pdf-to-excel',
         title: 'PDF to Excel',
-        description: 'Extract table data from PDFs into Excel.',
+        description: 'Extract table data from PDFs into clean Excel sheets.',
         href: '/tools/pdf-to-excel',
         icon: FileText,
-        color: 'text-green-700',
-        bg: 'bg-green-50',
-        hoverBorder: 'hover:border-green-500',
+        color: 'text-green-600',
+        bg: 'bg-green-600/10',
+        border: 'border-green-600/20',
         active: true,
     },
     {
         id: 'pdf-to-ppt',
         title: 'PDF to PPT',
-        description: 'Convert PDF documents into editable PowerPoint slides.',
+        description: 'Convert PDF documents into editable slides.',
         href: '/tools/pdf-to-ppt',
-        icon: FileText,
-        color: 'text-orange-700',
-        bg: 'bg-orange-50',
-        hoverBorder: 'hover:border-orange-500',
+        icon: ImageIcon,
+        color: 'text-orange-600',
+        bg: 'bg-orange-600/10',
+        border: 'border-orange-600/20',
         active: true,
     },
     {
         id: 'image-to-pdf',
         title: 'Image to PDF',
-        description: 'Combine JPG and PNG images into a single PDF.',
+        description: 'Combine JPG, PNG, and WebP images into one PDF.',
         href: '/tools/image-to-pdf',
         icon: ImageIcon,
-        color: 'text-purple-600',
-        bg: 'bg-purple-50',
-        hoverBorder: 'hover:border-purple-400',
+        color: 'text-purple-500',
+        bg: 'bg-purple-500/10',
+        border: 'border-purple-500/20',
         active: true,
     },
     {
         id: 'pdf-to-image',
         title: 'PDF to Image',
-        description: 'Convert each page of a PDF into high-quality images.',
+        description: 'Convert each PDF page into high-quality images.',
         href: '/tools/pdf-to-image',
         icon: ImageIcon,
-        color: 'text-pink-600',
-        bg: 'bg-pink-50',
-        hoverBorder: 'hover:border-pink-400',
+        color: 'text-pink-500',
+        bg: 'bg-pink-500/10',
+        border: 'border-pink-500/20',
         active: true,
     },
     {
         id: 'remove-pdf-pages',
-        title: 'Remove PDF Pages',
-        description: 'Delete specific pages from your PDF document.',
+        title: 'Remove Pages',
+        description: 'Precisely delete unnecessary pages from your PDF.',
         href: '/tools/remove-pdf-pages',
         icon: Trash2,
-        color: 'text-red-600',
-        bg: 'bg-red-50',
-        hoverBorder: 'hover:border-red-400',
+        color: 'text-red-500',
+        bg: 'bg-red-500/10',
+        border: 'border-red-500/20',
+        active: true,
+    },
+    {
+        id: 'rotate-pdf',
+        title: 'Rotate PDF',
+        description: 'Rotate individual pages or the entire PDF in any direction.',
+        href: '/tools/rotate-pdf',
+        icon: RotateCw,
+        color: 'text-violet-500',
+        bg: 'bg-violet-500/10',
+        border: 'border-violet-500/20',
         active: true,
     },
 ];
 
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.05
+        }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+};
+
 export default function Home() {
     const [searchQuery, setSearchQuery] = useState('');
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    const filteredTools = TOOLS.filter(tool =>
-        tool.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tool.description.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredTools = useMemo(() => 
+        TOOLS.filter(tool =>
+            tool.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            tool.description.toLowerCase().includes(searchQuery.toLowerCase())
+        ), [searchQuery]
     );
 
-    const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
-
     return (
-        <div className="min-h-screen bg-slate-50 relative overflow-hidden">
-            {/* Decorative Background Elements */}
-            <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-br from-blue-100 to-indigo-50 -skew-y-3 origin-top-left -z-10" />
-            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl -z-10 translate-x-1/2 -translate-y-1/2" />
+        <div className="relative min-h-screen">
+            {/* Ambient Background */}
+            <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/5 blur-[120px] rounded-full" />
+                <div className="absolute bottom-[10%] right-[-5%] w-[35%] h-[35%] bg-indigo-500/5 blur-[120px] rounded-full" />
+            </div>
 
-
-            <main className="container mx-auto px-6 py-12 md:py-20 lg:py-24">
+            <main className="container mx-auto px-6 pt-24 pb-32">
                 {/* Hero Section */}
-                <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-20">
-                    <div className="inline-flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold mb-6 border border-blue-100/50">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                        </span>
-                        <span>New Tools Added Weekly</span>
-                    </div>
+                <div className="flex flex-col items-center text-center max-w-4xl mx-auto mb-24">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="inline-flex items-center space-x-2 bg-white/50 backdrop-blur-sm border border-slate-200 px-4 py-1.5 rounded-full text-sm font-medium mb-8 text-slate-600 shadow-sm"
+                    >
+                        <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
+                        <span>The modern standard for PDF processing</span>
+                    </motion.div>
 
-                    <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 mb-6 leading-tight tracking-tight">
-                        The <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Wisest Way</span> to <br className="hidden md:block" /> Manage Your PDFs.
-                    </h1>
+                    <motion.h1 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-8"
+                    >
+                        Master your documents with <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">PdfWiser Intelligence.</span>
+                    </motion.h1>
 
-                    <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-2xl leading-relaxed">
-                        PdfWiser brings you a suite of powerful, intuitive tools to convert, edit, and organize your documents. 100% Free and Secure.
-                    </p>
+                    <motion.p 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="text-lg md:text-xl text-slate-600 mb-12 max-w-2xl leading-relaxed"
+                    >
+                        A refined suite of powerful, high-performance tools to refine, convert, and orchestrate your PDF workflow. 100% Free. Completely Private.
+                    </motion.p>
 
                     {/* Search Bar */}
-                    <div className="w-full max-w-lg relative mb-10 group">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="w-full max-w-xl relative group mb-12"
+                    >
+                        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                             <Search className="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                         </div>
                         <input
                             type="text"
-                            placeholder="Search tools (e.g. convert, merge...)"
-                            className="block w-full pl-11 pr-4 py-4 bg-white border border-slate-200 rounded-full leading-5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-lg shadow-slate-200/50 transition-all duration-300"
+                            placeholder="Find a tool (e.g. compress, merge, split...)"
+                            className="block w-full pl-12 pr-6 py-5 bg-white border border-slate-200 rounded-2xl leading-5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 shadow-xl shadow-slate-200/40 transition-all duration-300"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                        <Link
-                            href="#tools"
-                            className="px-8 py-3.5 bg-primary text-white font-semibold rounded-full shadow-lg shadow-blue-500/20 hover:bg-blue-700 hover:shadow-blue-500/30 transition-all transform hover:-translate-y-0.5 flex items-center group"
-                        >
-                            Explore Tools
-                            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                        </Link>
-                        <Link
-                            href="#features"
-                            className="px-8 py-3.5 bg-white text-slate-700 font-semibold rounded-full border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
-                        >
-                            Learn More
-                        </Link>
-                    </div>
+                    </motion.div>
                 </div>
 
                 {/* Tools Grid */}
-                <section id="tools" className="max-w-6xl mx-auto scroll-mt-24">
-                    <h2 className="sr-only">Our Tools</h2>
-
-                    {filteredTools.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                            {filteredTools.map((tool) => (
-                                tool.active ? (
-                                    <Link key={tool.id} href={tool.href} className="group">
-                                        <div className={`h-full bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-xl ${tool.hoverBorder} transition-all duration-300 relative overflow-hidden`}>
-                                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                                <tool.icon className={`w-24 h-24 ${tool.color}`} />
-                                            </div>
-
-                                            <div className={`w-12 h-12 ${tool.bg} ${tool.color} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                                                <tool.icon className="w-6 h-6" />
-                                            </div>
-
-                                            <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">{tool.title}</h3>
-                                            <p className="text-slate-600 mb-6 leading-relaxed">
-                                                {tool.description}
-                                            </p>
-
-                                            <div className="flex items-center text-sm font-semibold text-blue-600 group-hover:translate-x-1 transition-transform">
-                                                Try Now <ArrowRight className="w-4 h-4 ml-1" />
-                                            </div>
-                                        </div>
-                                    </Link>
-                                ) : (
-                                    <div key={tool.id} className="h-full bg-slate-50/50 p-6 rounded-2xl border border-slate-200 border-dashed relative group hover:bg-slate-100/50 transition-colors">
-                                        <div className={`w-12 h-12 ${tool.bg} ${tool.color} rounded-xl flex items-center justify-center mb-6`}>
-                                            <tool.icon className="w-6 h-6" />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-slate-400 mb-3">{tool.title}</h3>
-                                        <p className="text-slate-500 mb-6">
-                                            {tool.description}
-                                        </p>
-                                        <span className="inline-block px-3 py-1 bg-slate-200 text-slate-500 text-xs font-semibold rounded-full">Coming Soon</span>
-                                    </div>
-                                )
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-20 text-slate-500">
-                            <Search className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                            <p className="text-lg">No tools found matching "{searchQuery}"</p>
-                            <button
-                                onClick={() => setSearchQuery('')}
-                                className="mt-4 text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                <section id="tools" className="scroll-mt-32">
+                    <AnimatePresence mode="popLayout">
+                        {filteredTools.length > 0 ? (
+                            <motion.div 
+                                variants={containerVariants}
+                                initial="hidden"
+                                animate="visible"
+                                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                             >
-                                Clear search
-                            </button>
-                        </div>
-                    )}
+                                {filteredTools.map((tool) => (
+                                    <motion.div
+                                        key={tool.id}
+                                        variants={itemVariants}
+                                        layout
+                                    >
+                                        <Link href={tool.href} className="group block h-full">
+                                            <div className={cn(
+                                                "h-full bg-white p-8 rounded-[2rem] border transition-all duration-500 flex flex-col",
+                                                "hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-1",
+                                                tool.border,
+                                                "group-hover:border-transparent"
+                                            )}>
+                                                <div className={cn(
+                                                    "w-14 h-14 rounded-2xl flex items-center justify-center mb-8 transition-transform duration-500 group-hover:scale-110",
+                                                    tool.bg,
+                                                    tool.color
+                                                )}>
+                                                    <tool.icon className="w-7 h-7" />
+                                                </div>
+
+                                                <h3 className="text-xl font-bold text-slate-900 mb-3 transition-colors group-hover:text-blue-600">
+                                                    {tool.title}
+                                                </h3>
+                                                <p className="text-slate-500 leading-relaxed mb-8 flex-1">
+                                                    {tool.description}
+                                                </p>
+
+                                                <div className="flex items-center text-sm font-bold text-slate-900">
+                                                    <span className="relative overflow-hidden group/text">
+                                                        <span className="block group-hover:translate-y-[-100%] transition-transform duration-300">Launch Tool</span>
+                                                        <span className="absolute inset-0 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 text-blue-600">Let's go</span>
+                                                    </span>
+                                                    <ArrowRight className="w-4 h-4 ml-2 text-blue-600 group-hover:translate-x-1 transition-transform" />
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    </motion.div>
+                                ))}
+                            </motion.div>
+                        ) : (
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="text-center py-32"
+                            >
+                                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <Search className="w-8 h-8 text-slate-300" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">No matching tools found</h3>
+                                <p className="text-slate-500 mb-8">Try searching for something else or browse all tools.</p>
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="px-6 py-2.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors"
+                                >
+                                    Clear search
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </section>
 
-                {/* Feature Highlights Section */}
-                <div id="features" className="mt-24 pt-12 border-t border-slate-200 scroll-mt-24">
-                    <div className="text-center mb-12">
-                        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Why Professionals Choose PdfWiser</h2>
-                        <h3 className="text-3xl font-bold text-slate-900 mt-4">Everything you need to work with PDFs</h3>
-                    </div>
+                {/* Performance Section */}
+                <section id="features" className="mt-48">
+                    <div className="bg-slate-900 rounded-[3rem] p-12 md:p-20 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-[50%] h-full bg-blue-600/20 blur-[100px] pointer-events-none" />
+                        
+                        <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                            <div>
+                                <h2 className="text-3xl md:text-5xl font-bold mb-8 leading-tight">
+                                    Built for speed. <br />
+                                    Designed for privacy.
+                                </h2>
+                                <p className="text-slate-400 text-lg mb-12 leading-relaxed">
+                                    We've engineered PdfWiser to be the fastest document processor on the web. No queues, no limits, no compromises.
+                                </p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-                        {[
-                            { icon: Clock, title: "Lightning Fast", desc: "Optimized performance for instant conversions in seconds." },
-                            { icon: Shield, title: "Secure & Private", desc: "Files are processed locally or securely and never stored." },
-                            { icon: Layout, title: "High Quality", desc: "Preserve formatting, layout, and styling in every document." },
-                            { icon: Star, title: "Completely Free", desc: "No hidden fees, watermarks, or limits. Just pure utility." }
-                        ].map((item, i) => (
-                            <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mb-4">
-                                    <item.icon className="w-5 h-5" />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                    {[
+                                        { title: "Secure Processing", desc: "Files never leave your control." },
+                                        { title: "High Fidelity", desc: "Pixel-perfect conversion quality." },
+                                        { title: "No Watermarks", desc: "Professional output every time." },
+                                        { title: "Instant Results", desc: "Optimized serverless performance." }
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex space-x-4">
+                                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mt-1">
+                                                <CheckCircle2 className="w-4 h-4 text-blue-400" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold mb-1">{item.title}</h4>
+                                                <p className="text-sm text-slate-500">{item.desc}</p>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <h4 className="text-lg font-bold text-slate-900 mb-2">{item.title}</h4>
-                                <p className="text-slate-600 text-sm leading-relaxed">{item.desc}</p>
+                            </div>
+                            
+                            <div className="relative aspect-square lg:aspect-video rounded-2xl bg-gradient-to-br from-blue-500/10 to-transparent border border-white/5 backdrop-blur-3xl p-8 flex items-center justify-center">
+                                <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                                    <Layers className="w-64 h-64 text-blue-500" />
+                                </div>
+                                <div className="text-center z-10">
+                                    <div className="text-6xl font-black mb-2">99.9%</div>
+                                    <div className="text-slate-400 font-medium uppercase tracking-widest text-sm">Processing Accuracy</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Social Proof */}
+                <section className="mt-48 text-center">
+                    <h2 className="text-sm font-bold text-blue-600 uppercase tracking-widest mb-16">Trusted by Document Professionals</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                        {[
+                            { name: "Sarah Chen", role: "Technical Writer", text: "The Markdown engine is impeccable. Finally, a tool that respects complex formatting and LaTeX." },
+                            { name: "Marcus Thorne", role: "Operations Lead", text: "We've integrated PdfWiser tools into our weekly workflow. The speed is genuinely impressive." },
+                            { name: "Elena Rodriguez", role: "Creative Director", text: "Clean, distraction-free, and professional. It's rare to find free tools with this level of polish." }
+                        ].map((testimonial, i) => (
+                            <div key={i} className="flex flex-col items-center">
+                                <div className="flex text-amber-500 mb-6 space-x-1">
+                                    {[1, 2, 3, 4, 5].map(n => <Star key={n} className="w-4 h-4 fill-current" />)}
+                                </div>
+                                <p className="text-slate-600 text-lg italic mb-8">"{testimonial.text}"</p>
+                                <div>
+                                    <div className="font-bold text-slate-900">{testimonial.name}</div>
+                                    <div className="text-sm text-slate-500 font-medium">{testimonial.role}</div>
+                                </div>
                             </div>
                         ))}
                     </div>
-                </div>
-
-                {/* Testimonials Section */}
-                <div id="testimonials" className="mt-24 py-16 bg-white rounded-3xl border border-slate-100 shadow-sm scroll-mt-24">
-                    <div className="container mx-auto px-6">
-                        <div className="text-center mb-12">
-                            <h2 className="text-3xl font-bold text-slate-900">Loved by Developers & Writers</h2>
-                            <p className="text-slate-600 mt-4 max-w-2xl mx-auto">See what our users have to say about their experience with PdfWiser.</p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                            {[
-                                { name: "Sarah Chen", role: "Technical Writer", text: "Finally, a Markdown to PDF converter that actually handles LaTeX correctly. It's a lifesaver for my documentation work." },
-                                { name: "Mike Ross", role: "Student", text: "I use this for all my lecture notes. The interface is clean, distraction-free, and the PDF output is perfect for printing." },
-                                { name: "David Kim", role: "Software Engineer", text: "Fast, simple, and does exactly what it says. No bloat, no ads, just a great tool. Highly recommended." }
-                            ].map((testimonial, i) => (
-                                <div key={i} className="bg-slate-50 p-6 rounded-2xl border border-slate-100 relative">
-                                    <div className="flex text-yellow-400 mb-4">
-                                        {[1, 2, 3, 4, 5].map(n => <Star key={n} className="w-4 h-4 fill-current" />)}
-                                    </div>
-                                    <p className="text-slate-700 italic mb-6">"{testimonial.text}"</p>
-                                    <div>
-                                        <div className="font-bold text-slate-900">{testimonial.name}</div>
-                                        <div className="text-sm text-slate-500">{testimonial.role}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* FAQ Section (Metadata Boost) */}
-                <div id="faq" className="mt-24 max-w-4xl mx-auto scroll-mt-24">
-                    <div className="text-center mb-10">
-                        <h2 className="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
-                    </div>
-
-                    <div className="space-y-6">
-                        {[
-                            { q: "Is PdfWiser free to use?", a: "Yes, PdfWiser is completely free to use for all features including Markdown conversion and PDF generation." },
-                            { q: "Do you store my files?", a: "No. We value your privacy. Your files are processed securely for the conversion and are not permanently stored on our servers." },
-                            { q: "Can I convert complex Markdown with Math?", a: "Absolutely. Our Markdown tool supports GitHub Flavored Markdown, Code Highlighting, and LaTeX math equations." }
-                        ].map((faq, i) => (
-                            <div key={i} className="bg-white p-6 rounded-xl border border-slate-200">
-                                <h4 className="text-lg font-bold text-slate-900 mb-2">{faq.q}</h4>
-                                <p className="text-slate-600">{faq.a}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
+                </section>
             </main>
-
         </div>
     );
 }
