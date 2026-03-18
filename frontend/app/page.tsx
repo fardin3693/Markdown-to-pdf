@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, FileText, Settings, Upload, Zap, Download, Layers, Minimize2, Image as ImageIcon, CheckCircle2, Star, Shield, Layout, Clock, Search, Menu, X, Trash2, Scissors } from "lucide-react";
+import { ArrowRight, FileText, Settings, Upload, Zap, Download, Layers, Minimize2, Image as ImageIcon, CheckCircle2, Star, Shield, Layout, Clock, Search, Menu, X, Trash2, Scissors, RotateCw } from "lucide-react";
 
 const TOOLS = [
     {
@@ -135,6 +135,28 @@ const TOOLS = [
         color: 'text-red-600',
         bg: 'bg-red-50',
         hoverBorder: 'hover:border-red-400',
+        active: true,
+    },
+    {
+        id: 'markdown-to-pdf',
+        title: 'Markdown to PDF',
+        description: 'Convert your Markdown files to professional PDF documents.',
+        href: '/tools/markdown-to-pdf',
+        icon: FileText,
+        color: 'text-blue-600',
+        bg: 'bg-blue-50',
+        hoverBorder: 'hover:border-blue-400',
+        active: true,
+    },
+    {
+        id: 'rotate-pdf',
+        title: 'Rotate PDF',
+        description: 'Rotate individual pages or the entire PDF in any direction.',
+        href: '/tools/rotate-pdf',
+        icon: RotateCw,
+        color: 'text-violet-600',
+        bg: 'bg-violet-50',
+        hoverBorder: 'hover:border-violet-400',
         active: true,
     },
 ];
