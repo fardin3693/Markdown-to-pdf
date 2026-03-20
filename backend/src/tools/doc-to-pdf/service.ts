@@ -2,37 +2,12 @@ import fs from 'fs-extra';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { getLibreOfficePath } from '../../runtime/runtimeDependencies';
 
 const execAsync = promisify(exec);
 
-async function findLibreOfficePath(): Promise<string | undefined> {
-    const winPaths = [
-        'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
-        'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
-        'C:\\Program Files\\LibreOffice 24\\program\\soffice.exe',
-        'C:\\Program Files\\LibreOffice 25\\program\\soffice.exe',
-    ];
-
-    for (const p of winPaths) {
-        if (fs.existsSync(p)) {
-            return p;
-        }
-    }
-
-    try {
-        const { stdout } = await execAsync('where soffice');
-        return stdout.trim().split('\n')[0];
-    } catch {
-        return undefined;
-    }
-}
-
 export const convertDocxToPdf = async (inputPath: string, outputPath: string): Promise<void> => {
-    const libreOfficePath = await findLibreOfficePath();
-    
-    if (!libreOfficePath) {
-        throw new Error('LibreOffice not found. Please ensure LibreOffice is installed.');
-    }
+    const libreOfficePath = getLibreOfficePath();
 
     const dir = path.dirname(outputPath);
     const inputBasenameWithoutExt = path.parse(inputPath).name;
@@ -40,7 +15,7 @@ export const convertDocxToPdf = async (inputPath: string, outputPath: string): P
     const cmd = `"${libreOfficePath}" --headless --convert-to pdf --outdir "${dir}" "${inputPath}"`;
 
     try {
-        await execAsync(cmd);
+        await execAsync(cmd, { maxBuffer: 10 * 1024 * 1024 });
         
         const libreOfficeOutput = path.join(dir, `${inputBasenameWithoutExt}.pdf`);
         
@@ -53,6 +28,11 @@ export const convertDocxToPdf = async (inputPath: string, outputPath: string): P
         }
     } catch (error: any) {
         console.error('DOCX conversion error:', error);
-        throw new Error(`Conversion failed: ${error.message}`);
+
+        const stderr = typeof error?.stderr === 'string' ? error.stderr.trim() : '';
+        const stdout = typeof error?.stdout === 'string' ? error.stdout.trim() : '';
+        const details = stderr || stdout || error?.message || 'Unknown conversion error';
+
+        throw new Error(`Conversion failed: ${details}`);
     }
 };

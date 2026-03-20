@@ -2,34 +2,13 @@ import fs from 'fs-extra';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { getPythonPath } from '../../runtime/runtimeDependencies';
 
 const execAsync = promisify(exec);
 
-const PYTHON_PATH = process.env.PYTHON_PATH || 'C:\\Users\\fardi\\AppData\\Local\\Programs\\Python\\Python314\\python.exe';
-
-async function findLibreOfficePath(): Promise<string | undefined> {
-    const winPaths = [
-        'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
-        'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
-        'C:\\Program Files\\LibreOffice 24\\program\\soffice.exe',
-        'C:\\Program Files\\LibreOffice 25\\program\\soffice.exe',
-    ];
-
-    for (const p of winPaths) {
-        if (fs.existsSync(p)) {
-            return p;
-        }
-    }
-
-    try {
-        const { stdout } = await execAsync('where soffice');
-        return stdout.trim().split('\n')[0];
-    } catch {
-        return undefined;
-    }
-}
-
 export const convertPdfToPpt = async (inputPath: string, outputPath: string): Promise<void> => {
+    const pythonPath = getPythonPath();
+
     const script = `
 import sys
 import fitz
@@ -179,7 +158,7 @@ print("Conversion completed successfully")
     try {
         await fs.writeFile(tempScript, script);
         
-        const { stdout, stderr } = await execAsync(`"${PYTHON_PATH}" "${tempScript}" "${inputPath}" "${outputPath}"`, {
+        const { stdout, stderr } = await execAsync(`"${pythonPath}" "${tempScript}" "${inputPath}" "${outputPath}"`, {
             maxBuffer: 50 * 1024 * 1024
         });
         

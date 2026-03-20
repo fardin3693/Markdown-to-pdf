@@ -12,6 +12,8 @@ import pdfToExcelRoutes from './tools/pdf-to-excel/routes';
 import pdfToWordRoutes from './tools/pdf-to-word/routes';
 import removePdfPagesRoutes from './tools/remove-pdf-pages/routes';
 import rotatePdfRoutes from './tools/rotate-pdf/routes';
+import htmlToPdfRoutes from './tools/html-to-pdf/routes';
+import { getRuntimeHealth } from './runtime/runtimeDependencies';
 
 const router = Router();
 
@@ -29,6 +31,7 @@ router.use('/tools/pdf-to-excel', pdfToExcelRoutes);
 router.use('/tools/pdf-to-word', pdfToWordRoutes);
 router.use('/tools/remove-pdf-pages', removePdfPagesRoutes);
 router.use('/tools/rotate-pdf', rotatePdfRoutes);
+router.use('/tools/html-to-pdf', htmlToPdfRoutes);
 
 // Legacy/Root mounts (if needed for API simplification)
 router.use('/', markdownToPdfRoutes); // Exposes /convert
@@ -37,6 +40,25 @@ router.use('/', mergePdfRoutes);      // Exposes /merge
 
 router.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+router.get('/runtime/health', (req, res) => {
+    try {
+        const runtime = getRuntimeHealth();
+        const overallOk = runtime.checks.libreOffice.ok && runtime.checks.python.ok;
+
+        res.status(overallOk ? 200 : 503).json({
+            status: overallOk ? 'ok' : 'degraded',
+            timestamp: new Date().toISOString(),
+            runtime,
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            timestamp: new Date().toISOString(),
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
 });
 
 export default router;

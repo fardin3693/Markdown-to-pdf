@@ -70,8 +70,9 @@ export default function DocToPdfPage() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Conversion failed');
+                const errorData = await response.json().catch(() => ({} as Record<string, string>));
+                const reason = errorData.details || errorData.error || response.statusText || 'Conversion failed';
+                throw new Error(`Conversion failed (${response.status}): ${reason}`);
             }
 
             const blob = await response.blob();

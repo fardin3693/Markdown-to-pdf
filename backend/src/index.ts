@@ -4,6 +4,7 @@ import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import routes from './routes';
 import compressRoutes from './tools/compress-pdf/routes';
+import { initializeRuntimeDependencies } from './runtime/runtimeDependencies';
 
 dotenv.config();
 
@@ -22,7 +23,15 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '500mb' }));
 app.use('/api', routes);
 app.use('/api', compressRoutes);
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+async function bootstrap() {
+    await initializeRuntimeDependencies();
+
+    app.listen(PORT, () => {
+        console.log(`Server is running on http://localhost:${PORT}`);
+    });
+}
+
+bootstrap().catch((error) => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
 });

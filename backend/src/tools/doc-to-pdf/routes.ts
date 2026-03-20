@@ -28,17 +28,33 @@ const upload = multer({
         fileSize: 50 * 1024 * 1024 // 50MB limit
     },
     fileFilter: (req, file, cb) => {
-        if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-            file.mimetype === 'application/msword' ||
-            file.originalname.endsWith('.docx') ||
-            file.originalname.endsWith('.doc')) {
+        const ext = path.extname(file.originalname).toLowerCase();
+        const isDocExt = ext === '.doc' || ext === '.docx';
+        const allowedMimes = new Set([
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/msword',
+            'application/octet-stream',
+        ]);
+        const isMimeAllowed = allowedMimes.has(file.mimetype);
+
+        if (isDocExt && isMimeAllowed) {
             cb(null, true);
         } else {
-            cb(new Error('Only allowed doc/docx files'));
+            cb(new Error('Only .doc and .docx files are allowed'));
         }
     }
 });
 
-router.post('/convert', upload.single('file'), convertDocToPdf);
+router.post('/convert', (req, res, next) => {
+    upload.single('file')(req, res, (err: unknown) => {
+        if (!err) {
+            return next();
+        }
+
+        const message = err instanceof Error ? err.message : 'Invalid upload request';
+        const status = err instanceof multer.MulterError ? 400 : 415;
+        return res.status(status).json({ error: message });
+    });
+}, convertDocToPdf);
 
 export default router;

@@ -2,12 +2,13 @@ import fs from 'fs-extra';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { getPythonPath } from '../../runtime/runtimeDependencies';
 
 const execAsync = promisify(exec);
 
-const PYTHON_PATH = process.env.PYTHON_PATH || 'C:\\Users\\fardi\\AppData\\Local\\Programs\\Python\\Python314\\python.exe';
-
 export const convertPdfToWord = async (inputPath: string, outputPath: string): Promise<void> => {
+    const pythonPath = getPythonPath();
+
     const script = `
 import sys
 from pdf2docx import Converter
@@ -25,7 +26,7 @@ cv.close()
     try {
         await fs.writeFile(tempScript, script);
         
-        const { stdout, stderr } = await execAsync(`"${PYTHON_PATH}" "${tempScript}" "${inputPath}" "${outputPath}"`);
+        const { stdout, stderr } = await execAsync(`"${pythonPath}" "${tempScript}" "${inputPath}" "${outputPath}"`);
         
         if (stderr && !stderr.includes('WARNING')) {
             console.error('Python stderr:', stderr);

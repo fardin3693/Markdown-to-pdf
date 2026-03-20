@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, FileText, Settings, Upload, Zap, Download, Layers, Minimize2, Image as ImageIcon, CheckCircle2, Star, Shield, Layout, Clock, Search, Menu, X, Trash2, Scissors, RotateCw } from "lucide-react";
+import { ArrowRight, FileText, Settings, Upload, Zap, Download, Layers, Minimize2, Image as ImageIcon, CheckCircle2, Star, Shield, Layout, Clock, Search, Menu, X, Trash2, Scissors, RotateCw, Globe } from "lucide-react";
 
 const TOOLS = [
     {
@@ -157,6 +157,17 @@ const TOOLS = [
         color: 'text-violet-600',
         bg: 'bg-violet-50',
         hoverBorder: 'hover:border-violet-400',
+        active: true,
+    },
+    {
+        id: 'html-to-pdf',
+        title: 'HTML to PDF',
+        description: 'Render website URLs or HTML files into browser-accurate PDF output.',
+        href: '/tools/html-to-pdf',
+        icon: Globe,
+        color: 'text-sky-700',
+        bg: 'bg-sky-50',
+        hoverBorder: 'hover:border-sky-400',
         active: true,
     },
 ];
