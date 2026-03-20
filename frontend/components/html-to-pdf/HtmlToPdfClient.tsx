@@ -1,13 +1,13 @@
 'use client';
 
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import ToolPageHeader from '@/components/layout/ToolPageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Globe, Upload, FileCode2, Download, Loader2, Settings2, Sparkles, Monitor, Tablet, Smartphone, FileUp } from 'lucide-react';
 
 type SourceMode = 'url' | 'html';
-type UploadType = 'html' | 'zip' | null;
+type UploadType = 'html' | null;
 
 type HtmlToPdfOptions = {
     viewportPreset: 'desktop' | 'tablet' | 'mobile' | 'custom';
@@ -99,6 +99,8 @@ export default function HtmlToPdfClient() {
     const [errorMessage, setErrorMessage] = useState('');
     const [showAdvanced, setShowAdvanced] = useState(true);
     const [options, setOptions] = useState<HtmlToPdfOptions>(initialOptions);
+    const [iframeBlocked, setIframeBlocked] = useState(false);
+    const iframeRef = useRef<HTMLIFrameElement>(null);
 
     useEffect(() => {
         return () => {
@@ -113,6 +115,31 @@ export default function HtmlToPdfClient() {
             setPreviewHtml(html);
         }
     }, [sourceMode, html, uploadedFile]);
+
+    // Reset blocked state whenever the URL changes so we retry loading
+    useEffect(() => {
+        setIframeBlocked(false);
+    }, [url, sourceMode]);
+
+    // Detect if iframe was blocked by X-Frame-Options / CSP by checking
+    // whether the contentDocument is accessible after load
+    const handleIframeLoad = () => {
+        if (sourceMode !== 'url') return;
+        try {
+            // If the site blocked framing, the browser replaces the iframe
+            // content with an error page — the location href will be empty
+            // or inaccessible. A successful cross-origin load throws on access,
+            // which means it DID load (cross-origin, but not blocked).
+            const loc = iframeRef.current?.contentWindow?.location?.href;
+            // If loc is 'about:blank' or empty after load, the browser likely blocked it
+            if (!loc || loc === 'about:blank') {
+                setIframeBlocked(true);
+            }
+        } catch {
+            // Cross-origin access denied = page loaded fine, just can't read it
+            setIframeBlocked(false);
+        }
+    };
 
     const selectedViewportLabel = useMemo(() => {
         if (options.viewportPreset === 'desktop') return 'Desktop';
@@ -134,18 +161,11 @@ export default function HtmlToPdfClient() {
 
         const lowerName = file.name.toLowerCase();
         const isHtml = lowerName.endsWith('.html') || lowerName.endsWith('.htm');
-        const isZip = lowerName.endsWith('.zip');
 
-        if (!isHtml && !isZip) {
+        if (!isHtml) {
             setUploadedFile(null);
             setUploadType(null);
-            setErrorMessage('Please upload an .html, .htm, or .zip file.');
-            return;
-        }
-
-        if (isZip) {
-            setUploadType('zip');
-            setPreviewHtml('<p style="font-family: sans-serif; color: #334155;">ZIP preview is not available. Export to render zipped assets on the server.</p>');
+            setErrorMessage('Please upload an .html or .htm file.');
             return;
         }
 
@@ -322,18 +342,17 @@ export default function HtmlToPdfClient() {
                                     </div>
 
                                     <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-4">
-                                        <label htmlFor="html-upload" className="mb-2 block text-sm font-semibold text-slate-700">Upload .html/.htm or .zip</label>
+                                        <label htmlFor="html-upload" className="mb-2 block text-sm font-semibold text-slate-700">Upload .html or .htm</label>
                                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                                             <label htmlFor="html-upload" className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:text-blue-700">
                                                 <Upload className="h-4 w-4" />
                                                 Choose File
                                             </label>
-                                            <input id="html-upload" type="file" accept=".html,.htm,.zip" className="hidden" onChange={handleFileUpload} />
+                                            <input id="html-upload" type="file" accept=".html,.htm" className="hidden" onChange={handleFileUpload} />
                                             <span className="truncate text-sm text-slate-600">
                                                 {uploadedFile ? uploadedFile.name : 'No file selected'}
                                             </span>
                                         </div>
-                                        <p className="mt-3 text-xs text-slate-500">ZIP supports bundled CSS, JS, and images.</p>
                                     </div>
                                 </div>
                             )}
@@ -559,15 +578,25 @@ export default function HtmlToPdfClient() {
                     <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
                         <h2 className="text-lg font-bold text-slate-900">Rendered Preview</h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            This preview shows rendered output for pasted HTML and HTML files. ZIP previews are generated on export.
+                            This preview shows rendered output for pasted HTML and HTML files. For URLs, the site is loaded live below — some sites may block embedding.
                         </p>
 
-                        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                        <div className="relative mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                            {sourceMode === 'url' && iframeBlocked && (
+                                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-slate-50 text-center">
+                                    <Globe className="h-8 w-8 text-slate-400" />
+                                    <p className="text-sm font-semibold text-slate-700">Preview blocked by the website</p>
+                                    <p className="max-w-xs text-xs text-slate-500">This site disallows embedding via <code>X-Frame-Options</code> or CSP. The PDF will still be generated correctly on export.</p>
+                                </div>
+                            )}
                             <iframe
+                                ref={iframeRef}
                                 title="HTML preview"
-                                srcDoc={sourceMode === 'html' ? previewHtml : `<html><body style=\"font-family:Segoe UI,sans-serif;padding:24px;color:#334155;\"><h2>URL Mode</h2><p>The website URL is rendered on the server at export time.</p></body></html>`}
+                                src={sourceMode === 'url' && url ? url : undefined}
+                                srcDoc={sourceMode === 'html' ? previewHtml : undefined}
                                 className="h-[460px] w-full"
                                 sandbox="allow-scripts allow-forms allow-modals"
+                                onLoad={handleIframeLoad}
                             />
                         </div>
                     </section>

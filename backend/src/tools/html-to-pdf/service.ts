@@ -1,10 +1,22 @@
 import dns from 'dns/promises';
+import type { LookupAddress } from 'dns';
 import fs from 'fs-extra';
 import net from 'net';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import extract from 'extract-zip';
 import puppeteer, { Browser, Page, PDFMargin, PDFOptions, Viewport } from 'puppeteer';
+
+/**
+ * Thrown when user-supplied URL input fails validation.
+ * Allows the controller to respond with HTTP 400 instead of 500.
+ */
+export class UrlValidationError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'UrlValidationError';
+    }
+}
 
 type InputMode = 'url' | 'html' | 'upload';
 
@@ -154,37 +166,67 @@ const assertPublicUrl = async (rawUrl: string): Promise<string> => {
     try {
         parsedUrl = new URL(rawUrl);
     } catch {
-        throw new Error('Invalid URL format');
+        throw new UrlValidationError(
+            `"${rawUrl}" is not a valid URL. ` +
+            'A URL must include a protocol and hostname, e.g. https://example.com',
+        );
     }
 
     if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-        throw new Error('Only http and https URLs are allowed');
+        throw new UrlValidationError(
+            `Unsupported protocol "${parsedUrl.protocol.replace(':', '')}". ` +
+            'Only http and https URLs are accepted.',
+        );
     }
 
     const hostname = parsedUrl.hostname.toLowerCase();
     if (hostname === 'localhost' || hostname.endsWith('.localhost')) {
-        throw new Error('Localhost URLs are not allowed');
+        throw new UrlValidationError(
+            'Localhost URLs are not allowed. ' +
+            'Please provide a publicly accessible URL.',
+        );
     }
 
     const hostIpVersion = net.isIP(hostname);
 
     if (hostIpVersion === 4 && isPrivateIPv4(hostname)) {
-        throw new Error('Private network URLs are not allowed');
+        throw new UrlValidationError(
+            `The IP address "${hostname}" belongs to a private network range and is not allowed. ` +
+            'Please provide a publicly accessible URL.',
+        );
     }
 
     if (hostIpVersion === 6 && isPrivateIPv6(hostname)) {
-        throw new Error('Private network URLs are not allowed');
+        throw new UrlValidationError(
+            `The IPv6 address "${hostname}" belongs to a private network range and is not allowed. ` +
+            'Please provide a publicly accessible URL.',
+        );
     }
 
     if (!hostIpVersion) {
-        const lookupResults = await dns.lookup(hostname, { all: true });
+        let lookupResults: LookupAddress[];
+        try {
+            lookupResults = await dns.lookup(hostname, { all: true });
+        } catch {
+            throw new UrlValidationError(
+                `Could not resolve the hostname "${hostname}". ` +
+                'Please check that the domain name is spelled correctly and is publicly accessible.',
+            );
+        }
+
         if (!lookupResults.length) {
-            throw new Error('Could not resolve URL host');
+            throw new UrlValidationError(
+                `The hostname "${hostname}" did not return any DNS records. ` +
+                'Please check that the domain name is spelled correctly and is publicly accessible.',
+            );
         }
 
         for (const result of lookupResults) {
             if ((result.family === 4 && isPrivateIPv4(result.address)) || (result.family === 6 && isPrivateIPv6(result.address))) {
-                throw new Error('URL resolves to a private network address and is blocked');
+                throw new UrlValidationError(
+                    `The hostname "${hostname}" resolves to the private address "${result.address}", which is not allowed. ` +
+                    'Only URLs that resolve to public IP addresses are accepted.',
+                );
             }
         }
     }

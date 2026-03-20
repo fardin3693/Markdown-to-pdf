@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import fs from 'fs-extra';
-import { convertHtmlInputToPdf, HtmlToPdfOptions } from './service';
+import { convertHtmlInputToPdf, HtmlToPdfOptions, UrlValidationError } from './service';
 
 const parseOptions = (rawOptions: unknown): HtmlToPdfOptions => {
     if (!rawOptions) {
@@ -35,7 +35,7 @@ export const convertHtmlToPdf = async (req: Request, res: Response) => {
         if (mode === 'url') {
             const url = typeof req.body.url === 'string' ? req.body.url.trim() : '';
             if (!url) {
-                return res.status(400).json({ error: 'URL is required for website mode' });
+                return res.status(400).json({ error: 'No URL provided. Please supply a URL, e.g. https://example.com' });
             }
 
             const pdfBuffer = await convertHtmlInputToPdf({ mode: 'url', url, options });
@@ -73,6 +73,9 @@ export const convertHtmlToPdf = async (req: Request, res: Response) => {
         return res.send(pdfBuffer);
     } catch (error) {
         console.error('Error converting HTML to PDF:', error);
+        if (error instanceof UrlValidationError) {
+            return res.status(400).json({ error: error.message });
+        }
         return res.status(500).json({
             error: 'Failed to convert HTML to PDF',
             details: error instanceof Error ? error.message : String(error),
