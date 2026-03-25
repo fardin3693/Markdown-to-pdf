@@ -147,7 +147,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" className={nunito.variable} suppressHydrationWarning>
-            <head>
+            <body className="font-sans antialiased min-h-screen flex flex-col bg-slate-50 text-slate-900">
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
@@ -160,8 +160,6 @@ export default function RootLayout({
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(webApplicationSchema) }}
                 />
-            </head>
-            <body className="font-sans antialiased min-h-screen flex flex-col bg-slate-50 text-slate-900">
                 <Header />
                 <main className="flex-1">
                     {children}
