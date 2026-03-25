@@ -20,12 +20,12 @@ export const metadata: Metadata = {
     },
     description: "Free online PDF tools to merge, compress, convert, and edit PDFs. Convert Markdown, Word, Excel, PowerPoint to PDF. No registration required. 100% free and secure.",
     keywords: [
-        "pdf tools", "free pdf tools", "merge pdf", "compress pdf", "pdf compressor", 
+        "pdf tools", "free pdf tools", "merge pdf", "compress pdf", "pdf compressor",
         "markdown to pdf", "md to pdf", "word to pdf", "excel to pdf", "ppt to pdf",
         "image to pdf", "jpg to pdf", "png to pdf", "pdf to image", "pdf to word",
         "pdf to excel", "pdf to ppt", "split pdf", "extract pdf pages", "remove pdf pages",
         "pdf converter", "free pdf converter", "online pdf tools", "pdf editor",
-        "latex to pdf", "markdown converter", "document to pdf", "convert pdf"
+        "html to pdf", "latex to pdf", "markdown converter", "document to pdf", "convert pdf"
     ],
     authors: [{ name: "PdfWiser" }],
     creator: "PdfWiser",
@@ -78,6 +78,68 @@ export const metadata: Metadata = {
     classification: "Online PDF Tools",
 };
 
+const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "PdfWiser",
+    "url": siteUrl,
+    "description": "Free online PDF tools to merge, compress, convert, and edit PDFs.",
+    "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": `${siteUrl}/?q={search_term_string}`
+        },
+        "query-input": "required name=search_term_string"
+    }
+};
+
+const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "PdfWiser",
+    "url": siteUrl,
+    "logo": `${siteUrl}/og-image.png`,
+    "description": "Free online PDF tools for everyone. Merge, compress, convert, and edit PDFs without registration.",
+    "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "url": siteUrl
+    }
+};
+
+const webApplicationSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "PdfWiser",
+    "url": siteUrl,
+    "description": "A suite of free online PDF tools to merge, compress, convert, split, rotate, and edit PDF files.",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+    },
+    "featureList": [
+        "Compress PDF",
+        "Merge PDF",
+        "Split PDF",
+        "Word to PDF",
+        "Excel to PDF",
+        "PowerPoint to PDF",
+        "PDF to Word",
+        "PDF to Excel",
+        "PDF to PowerPoint",
+        "Image to PDF",
+        "PDF to Image",
+        "Markdown to PDF",
+        "HTML to PDF",
+        "Rotate PDF",
+        "Remove PDF Pages"
+    ]
+};
+
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -85,6 +147,20 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" className={nunito.variable} suppressHydrationWarning>
+            <head>
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+                />
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+                />
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(webApplicationSchema) }}
+                />
+            </head>
             <body className="font-sans antialiased min-h-screen flex flex-col bg-slate-50 text-slate-900">
                 <Header />
                 <main className="flex-1">

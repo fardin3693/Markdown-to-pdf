@@ -172,6 +172,37 @@ const TOOLS = [
     },
 ];
 
+const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "Is PdfWiser free to use?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, PdfWiser is completely free to use for all features including Markdown conversion and PDF generation."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Do you store my files?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. We value your privacy. Your files are processed securely for the conversion and are not permanently stored on our servers."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Can I convert complex Markdown with Math?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Absolutely. Our Markdown tool supports GitHub Flavored Markdown, Code Highlighting, and LaTeX math equations."
+            }
+        }
+    ]
+};
+
 export default function Home() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -185,6 +216,10 @@ export default function Home() {
 
     return (
         <div className="min-h-screen bg-slate-50 relative overflow-hidden">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
             {/* Decorative Background Elements */}
             <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-br from-blue-100 to-indigo-50 -skew-y-3 origin-top-left -z-10" />
             <div className="absolute top-0 right-0 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl -z-10 translate-x-1/2 -translate-y-1/2" />
@@ -242,7 +277,7 @@ export default function Home() {
 
                 {/* Tools Grid */}
                 <section id="tools" className="max-w-6xl mx-auto scroll-mt-24">
-                    <h2 className="sr-only">Our Tools</h2>
+                    <h2 className="text-3xl font-bold text-slate-900 text-center mb-10">All PDF Tools</h2>
 
                     {filteredTools.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
