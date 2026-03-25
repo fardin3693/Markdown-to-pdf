@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
+import { getGhostscriptBin } from '../../runtime/runtimeDependencies';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { compress } = require('compress-pdf');
 
@@ -100,17 +101,19 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
             await fs.ensureDir(outputDir);
 
             // Compress
+            const gsModule = getGhostscriptBin();
+
             console.log('Calling compress-pdf with:', {
                 inputPath,
                 outputDir,
-                gsModule: 'gs',
+                gsModule,
                 compressionLevel,
                 argsCount: gsArgs.length
             });
 
             const compressedBuffer = await compress(inputPath, {
                 output: outputDir,
-                gsModule: 'gs',
+                gsModule,
                 args: gsArgs
             });
 
@@ -156,7 +159,7 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
             console.error('Inner compression error:', err);
 
             // Check for specific Ghostscript errors
-            if (err.message && (err.message.includes('spawn gswin64c ENOENT') || err.message.includes('spawn gs ENOENT') || err.message.includes('Command failed'))) {
+            if (err.message && (err.message.includes('ENOENT') || err.message.includes('Command failed') || err.message.includes('not available'))) {
                 res.status(500).json({ error: 'Server Configuration Error: Ghostscript is not installed or not in PATH.' });
                 return;
             }
