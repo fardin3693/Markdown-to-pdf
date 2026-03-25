@@ -4,9 +4,6 @@ const nextConfig: NextConfig = {
   experimental: {
     proxyClientMaxBodySize: '500mb',
   },
-  turbopack: {
-    root: __dirname,
-  },
   images: {
     remotePatterns: [
       {
