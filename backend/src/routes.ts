@@ -45,7 +45,7 @@ router.get('/health', (req, res) => {
 router.get('/runtime/health', (req, res) => {
     try {
         const runtime = getRuntimeHealth();
-        const overallOk = runtime.checks.libreOffice.ok && runtime.checks.python.ok;
+        const overallOk = runtime.checks.libreOffice.ok && runtime.checks.python.ok && runtime.checks.ghostscript.ok;
 
         res.status(overallOk ? 200 : 503).json({
             status: overallOk ? 'ok' : 'degraded',
