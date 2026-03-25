@@ -103,14 +103,14 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
             console.log('Calling compress-pdf with:', {
                 inputPath,
                 outputDir,
-                gsModule: 'gswin64c',
+                gsModule: 'gs',
                 compressionLevel,
                 argsCount: gsArgs.length
             });
 
             const compressedBuffer = await compress(inputPath, {
                 output: outputDir,
-                gsModule: 'gswin64c',
+                gsModule: 'gs',
                 args: gsArgs
             });
 
