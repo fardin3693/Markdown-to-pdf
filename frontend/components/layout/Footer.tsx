@@ -8,8 +8,8 @@ export default function Footer() {
         <footer className="border-t border-slate-200 bg-slate-900 text-slate-300 py-12 mt-auto">
             <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div className="col-span-1 md:col-span-2">
-                    <Link href="/" className="flex items-center space-x-2 text-white mb-4">
-                        <Zap className="w-5 h-5" />
+                    <Link href="/" className="flex items-center space-x-2 text-white mb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">
+                        <Zap className="w-5 h-5" aria-hidden="true" />
                         <span className="text-xl font-bold tracking-tight">PdfWiser</span>
                     </Link>
                     <p className="mb-4 max-w-sm text-slate-400">
@@ -18,22 +18,22 @@ export default function Footer() {
                 </div>
 
                 <div>
-                    <h5 className="text-white font-bold mb-4">Tools</h5>
+                    <h2 className="text-white font-bold mb-4 text-base">Tools</h2>
                     <ul className="space-y-2 text-sm">
-                        <li><Link href="/tools/markdown-to-pdf" className="hover:text-white transition-colors">Markdown to PDF</Link></li>
-                        <li><Link href="/tools/merge-pdf" className="hover:text-white transition-colors">Merge PDFs</Link></li>
-                        <li><Link href="/tools/compress-pdf" className="hover:text-white transition-colors">Compress PDF</Link></li>
-                        <li><Link href="/tools/image-to-pdf" className="hover:text-white transition-colors">Image to PDF</Link></li>
-                        <li><Link href="/tools/pdf-to-image" className="hover:text-white transition-colors">PDF to Image</Link></li>
+                        <li><Link href="/tools/markdown-to-pdf" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">Markdown to PDF</Link></li>
+                        <li><Link href="/tools/merge-pdf" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">Merge PDFs</Link></li>
+                        <li><Link href="/tools/compress-pdf" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">Compress PDF</Link></li>
+                        <li><Link href="/tools/image-to-pdf" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">Image to PDF</Link></li>
+                        <li><Link href="/tools/pdf-to-image" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">PDF to Image</Link></li>
                     </ul>
                 </div>
 
                 <div>
-                    <h5 className="text-white font-bold mb-4">Legal</h5>
+                    <h2 className="text-white font-bold mb-4 text-base">Legal</h2>
                     <ul className="space-y-2 text-sm">
-                        <li><Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-                        <li><Link href="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</Link></li>
-                        <li><Link href="#" className="hover:text-white transition-colors">Contact Us</Link></li>
+                        <li><Link href="/privacy-policy" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">Privacy Policy</Link></li>
+                        <li><Link href="/terms-of-service" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">Terms of Service</Link></li>
+                        <li><Link href="#" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">Contact Us</Link></li>
                     </ul>
                 </div>
             </div>

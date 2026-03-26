@@ -14,7 +14,6 @@
         --popover-foreground: 222.2 84% 4.9%;
 
         --primary: 221.2 83.2% 53.3%;
-        /* Blue like standard SaaS */
         --primary-foreground: 210 40% 98%;
 
         --secondary: 210 40% 96.1%;
@@ -53,6 +52,26 @@
     h5,
     h6 {
         @apply font-sans;
+        text-wrap: balance;
+    }
+
+    /* Touch targets: reduce tap delay on all interactive elements */
+    button,
+    a,
+    [role="button"] {
+        touch-action: manipulation;
+    }
+
+    /* Respect user preference for reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
     }
 }
 
