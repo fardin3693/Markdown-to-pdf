@@ -1,6 +1,15 @@
 import { Request, Response } from 'express';
 import puppeteer from 'puppeteer';
 import archiver from 'archiver';
+import { execSync } from 'child_process';
+
+function getChromiumPath(): string | undefined {
+    try {
+        return execSync('which chromium').toString().trim();
+    } catch {
+        return undefined;
+    }
+}
 
 export const pdfToImageHandler = async (req: Request, res: Response) => {
     const file = req.file;
@@ -11,6 +20,7 @@ export const pdfToImageHandler = async (req: Request, res: Response) => {
 
     const browser = await puppeteer.launch({
         headless: true,
+        executablePath: process.env.CHROMIUM_PATH || getChromiumPath(),
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
 

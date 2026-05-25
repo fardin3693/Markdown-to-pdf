@@ -20,7 +20,8 @@ async function findLibreOfficePath(): Promise<string | undefined> {
     }
 
     try {
-        const { stdout } = await execAsync('where soffice');
+        const cmd = process.platform === 'win32' ? 'where soffice' : 'which soffice';
+        const { stdout } = await execAsync(cmd);
         return stdout.trim().split('\n')[0];
     } catch {
         return undefined;

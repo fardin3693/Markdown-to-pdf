@@ -1,4 +1,13 @@
 import puppeteer, { PDFMargin } from 'puppeteer';
+import { execSync } from 'child_process';
+
+function getChromiumPath(): string | undefined {
+    try {
+        return execSync('which chromium').toString().trim();
+    } catch {
+        return undefined;
+    }
+}
 
 interface PDFOptions {
     margins?: 'normal' | 'narrow' | 'wide' | 'none' | PDFMargin;
@@ -8,6 +17,7 @@ interface PDFOptions {
 export const generatePdf = async (html: string, options: PDFOptions = {}): Promise<Buffer> => {
     const browser = await puppeteer.launch({
         headless: true,
+        executablePath: process.env.CHROMIUM_PATH || getChromiumPath(),
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
     const page = await browser.newPage();
