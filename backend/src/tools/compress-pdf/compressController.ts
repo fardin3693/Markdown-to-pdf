@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
+import { getGhostscriptModule } from '../../utils/platformUtils';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { compress } = require('compress-pdf');
 
@@ -13,16 +14,14 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
 
         const file = req.files[0];
         console.log('Received file:', { name: file.originalname, size: file.size, mimetype: file.mimetype });
-        console.log('Request body:', req.body);
-        console.log('Raw compressionLevel from body:', req.body.compressionLevel);
         const compressionLevel = req.body.compressionLevel || 'standard';
         console.log('Using compressionLevel:', compressionLevel);
 
-        // Map frontend levels to compress-pdf settings with enhanced parameters
+        const gsModule = getGhostscriptModule();
+
         let gsArgs: string[] = [];
         switch (compressionLevel) {
             case 'max':
-                // Maximum compression - lowest quality (72 dpi, JPEG quality 50)
                 gsArgs = [
                     '-dPDFSETTINGS=/screen',
                     '-dColorImageResolution=72',
@@ -40,7 +39,6 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
                 ];
                 break;
             case 'standard':
-                // Standard compression - balanced quality (150 dpi, JPEG quality 70)
                 gsArgs = [
                     '-dPDFSETTINGS=/ebook',
                     '-dColorImageResolution=150',
@@ -58,7 +56,6 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
                 ];
                 break;
             case 'low':
-                // Low compression - high quality (300 dpi, JPEG quality 85)
                 gsArgs = [
                     '-dPDFSETTINGS=/printer',
                     '-dColorImageResolution=300',
@@ -76,7 +73,6 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
                 ];
                 break;
             default:
-                // Default to standard
                 gsArgs = [
                     '-dPDFSETTINGS=/ebook',
                     '-dJPEGQ=70',
@@ -89,28 +85,19 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
                 ];
         }
 
-        // Temporary directory for processing
         const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pdf-compress-'));
         const inputPath = path.join(tempDir, file.originalname);
         const outputDir = path.join(tempDir, 'output');
 
         try {
-            // Write buffer to temp file
             await fs.writeFile(inputPath, file.buffer);
             await fs.ensureDir(outputDir);
 
-            // Compress
-            console.log('Calling compress-pdf with:', {
-                inputPath,
-                outputDir,
-                gsModule: 'gswin64c',
-                compressionLevel,
-                argsCount: gsArgs.length
-            });
+            console.log('Calling compress-pdf with gsModule:', gsModule);
 
             const compressedBuffer = await compress(inputPath, {
                 output: outputDir,
-                gsModule: 'gswin64c',
+                gsModule,
                 args: gsArgs
             });
 
@@ -121,14 +108,6 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
             const compressedSize = compressedBuffer.length;
             const originalSize = file.size;
 
-            console.log('Compression result:', {
-                originalSize,
-                compressedSize,
-                reduction: originalSize - compressedSize,
-                reductionPercent: Math.round(((originalSize - compressedSize) / originalSize) * 100)
-            });
-
-            // If compressed file is larger or same size, return original
             let finalBuffer: Buffer;
             let finalSize: number;
             let wasCompressed = true;
@@ -143,7 +122,6 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
                 finalSize = compressedSize;
             }
 
-            // Send response with metadata for frontend to show stats
             res.setHeader('Content-Type', 'application/pdf');
             res.setHeader('Content-Disposition', `attachment; filename="compressed_${file.originalname}"`);
             res.setHeader('X-Original-Size', originalSize.toString());
@@ -154,15 +132,17 @@ export const compressPdfHandler = async (req: Request, res: Response) => {
 
         } catch (err: any) {
             console.error('Inner compression error:', err);
-
-            // Check for specific Ghostscript errors
-            if (err.message && (err.message.includes('spawn gswin64c ENOENT') || err.message.includes('spawn gs ENOENT') || err.message.includes('Command failed'))) {
+            if (err.message && (
+                err.message.includes('spawn gswin64c ENOENT') ||
+                err.message.includes('spawn gswin32c ENOENT') ||
+                err.message.includes('spawn gs ENOENT') ||
+                err.message.includes('Command failed')
+            )) {
                 res.status(500).json({ error: 'Server Configuration Error: Ghostscript is not installed or not in PATH.' });
                 return;
             }
             throw err;
         } finally {
-            // Cleanup
             await fs.remove(tempDir).catch(e => console.error('Cleanup error:', e));
         }
 

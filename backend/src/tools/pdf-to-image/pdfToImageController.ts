@@ -1,15 +1,7 @@
 import { Request, Response } from 'express';
 import puppeteer from 'puppeteer';
 import archiver from 'archiver';
-import { execSync } from 'child_process';
-
-function getChromiumPath(): string | undefined {
-    try {
-        return execSync('which chromium').toString().trim();
-    } catch {
-        return undefined;
-    }
-}
+import { findChromiumPath } from '../../utils/platformUtils';
 
 export const pdfToImageHandler = async (req: Request, res: Response) => {
     const file = req.file;
@@ -20,29 +12,24 @@ export const pdfToImageHandler = async (req: Request, res: Response) => {
 
     const browser = await puppeteer.launch({
         headless: true,
-        executablePath: process.env.CHROMIUM_PATH || getChromiumPath(),
+        executablePath: findChromiumPath(),
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
 
     try {
         const page = await browser.newPage();
 
-        // Pass the PDF data as base64
         const pdfBase64 = file.buffer.toString('base64');
 
-        // Use addScriptTag to inject PDF.js and the conversion logic as raw JS
         await page.setContent(`<html><head></head><body></body></html>`);
         await page.addScriptTag({ url: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js' });
 
-        // Wait a moment for the script to initialize
         await page.waitForFunction(() => typeof (window as any).pdfjsLib !== 'undefined', { timeout: 10000 });
 
-        // Set the worker source
         await page.evaluate(() => {
             (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         });
 
-        // Now run the conversion - using Promise chains to avoid __awaiter issue
         const images = await page.evaluate((pdfData: string) => {
             return new Promise((resolve, reject) => {
                 try {
@@ -82,7 +69,6 @@ export const pdfToImageHandler = async (req: Request, res: Response) => {
             });
         }, pdfBase64) as string[];
 
-        // Zip the images
         const archive = archiver('zip', { zlib: { level: 9 } });
         res.setHeader('Content-Type', 'application/zip');
         res.setHeader('Content-Disposition', `attachment; filename="converted_images.zip"`);

@@ -1,13 +1,15 @@
 import fs from 'fs-extra';
 import path from 'path';
+import os from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { findPythonPath } from '../../utils/platformUtils';
 
 const execAsync = promisify(exec);
 
-const PYTHON_PATH = process.env.PYTHON_PATH || 'C:\\Users\\fardi\\AppData\\Local\\Programs\\Python\\Python314\\python.exe';
-
 export const convertPdfToExcel = async (inputPath: string, outputPath: string): Promise<void> => {
+    const pythonPath = findPythonPath();
+
     const script = `
 import sys
 import pdfplumber
@@ -34,17 +36,18 @@ else:
         pd.DataFrame().to_excel(writer, sheet_name='No_Data', index=False)
 `;
 
-    const tempScript = path.join(path.dirname(outputPath), 'convert_pdf_to_excel.py');
-    
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pdf-excel-'));
+    const tempScript = path.join(tempDir, 'convert_pdf_to_excel.py');
+
     try {
         await fs.writeFile(tempScript, script);
-        
-        const { stdout, stderr } = await execAsync(`"${PYTHON_PATH}" "${tempScript}" "${inputPath}" "${outputPath}"`);
-        
+
+        const { stdout, stderr } = await execAsync(`"${pythonPath}" "${tempScript}" "${inputPath}" "${outputPath}"`);
+
         if (stderr && !stderr.includes('WARNING')) {
             console.error('Python stderr:', stderr);
         }
-        
+
         if (!await fs.pathExists(outputPath)) {
             throw new Error(`XLSX was not created. Python output: ${stderr || stdout}`);
         }
@@ -52,8 +55,6 @@ else:
         console.error('PDF to Excel conversion error:', error);
         throw new Error(`Conversion failed: ${error.message}`);
     } finally {
-        try {
-            await fs.unlink(tempScript);
-        } catch {}
+        await fs.remove(tempDir).catch(() => {});
     }
 };

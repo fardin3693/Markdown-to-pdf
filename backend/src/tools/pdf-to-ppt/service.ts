@@ -1,35 +1,15 @@
 import fs from 'fs-extra';
 import path from 'path';
+import os from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { findPythonPath } from '../../utils/platformUtils';
 
 const execAsync = promisify(exec);
 
-const PYTHON_PATH = process.env.PYTHON_PATH || 'C:\\Users\\fardi\\AppData\\Local\\Programs\\Python\\Python314\\python.exe';
-
-async function findLibreOfficePath(): Promise<string | undefined> {
-    const winPaths = [
-        'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
-        'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
-        'C:\\Program Files\\LibreOffice 24\\program\\soffice.exe',
-        'C:\\Program Files\\LibreOffice 25\\program\\soffice.exe',
-    ];
-
-    for (const p of winPaths) {
-        if (fs.existsSync(p)) {
-            return p;
-        }
-    }
-
-    try {
-        const { stdout } = await execAsync('where soffice');
-        return stdout.trim().split('\n')[0];
-    } catch {
-        return undefined;
-    }
-}
-
 export const convertPdfToPpt = async (inputPath: string, outputPath: string): Promise<void> => {
+    const pythonPath = findPythonPath();
+
     const script = `
 import sys
 import fitz
@@ -174,19 +154,20 @@ prs.save(output_path)
 print("Conversion completed successfully")
 `;
 
-    const tempScript = path.join(path.dirname(outputPath), 'convert_pdf_to_ppt.py');
-    
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pdf-ppt-'));
+    const tempScript = path.join(tempDir, 'convert_pdf_to_ppt.py');
+
     try {
         await fs.writeFile(tempScript, script);
-        
-        const { stdout, stderr } = await execAsync(`"${PYTHON_PATH}" "${tempScript}" "${inputPath}" "${outputPath}"`, {
+
+        const { stdout, stderr } = await execAsync(`"${pythonPath}" "${tempScript}" "${inputPath}" "${outputPath}"`, {
             maxBuffer: 50 * 1024 * 1024
         });
-        
+
         if (stderr && !stderr.includes('Warning')) {
             console.error('Python stderr:', stderr);
         }
-        
+
         if (!await fs.pathExists(outputPath)) {
             throw new Error(`PPTX was not created. Python output: ${stderr || stdout}`);
         }
@@ -194,8 +175,6 @@ print("Conversion completed successfully")
         console.error('PDF to PPT conversion error:', error);
         throw new Error(`Conversion failed: ${error.message}`);
     } finally {
-        try {
-            await fs.unlink(tempScript);
-        } catch {}
+        await fs.remove(tempDir).catch(() => {});
     }
 };
